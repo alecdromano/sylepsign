@@ -21,9 +21,7 @@ POLKIT_DIR="/usr/share/polkit-1/actions"
 
 CLEANUP_TEMP_DIR=""
 cleanup() {
-    if [ -n "${CLEANUP_TEMP_DIR:-}" ] && [ -d "${CLEANUP_TEMP_DIR}" ]; then
-        rm -rf "${CLEANUP_TEMP_DIR}"
-    fi
+    [ -n "${CLEANUP_TEMP_DIR:-}" ] && [ -d "${CLEANUP_TEMP_DIR}" ] && rm -rf "${CLEANUP_TEMP_DIR}"
 }
 trap cleanup EXIT
 
@@ -126,7 +124,8 @@ EOF
     cp "${SCRIPT_DIR}/systemd/sylepsign.service" "${SYSTEMD_DIR}/sylepsign.service"
     systemctl daemon-reload
     systemctl reload dbus || true
-    systemctl enable --now sylepsign.service
+    systemctl enable sylepsign.service
+    systemctl restart sylepsign.service
 }
 
 install_cli() {
