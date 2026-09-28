@@ -5,7 +5,6 @@ DEST="org.sylepsign.Daemon"
 PATH_OBJ="/org/sylepsign/Daemon"
 IFACE="org.sylepsign.Daemon"
 UUID="sylepsign@alecromano.com"
-
 EXT_INSTALL_DIR="/usr/local/share/gnome-shell/extensions/${UUID}"
 SCHEMA_DIR="/usr/share/glib-2.0/schemas"
 BIN_DIR="/usr/local/bin"
@@ -49,19 +48,12 @@ ensure_dconf_profiles() {
     mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
     for prof in gdm Debian-gdm; do
         local pfile="/etc/dconf/profile/${prof}"
-        if [ ! -f "${pfile}" ]; then
-            printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
-        elif ! grep -q "^system-db:gdm" "${pfile}" 2>/dev/null; then
-            echo "system-db:gdm" >> "${pfile}"
-        fi
+        [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
+        grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
     done
-
     local uprofile="/etc/dconf/profile/user"
-    if [ ! -f "${uprofile}" ]; then
-        printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
-    elif ! grep -q "^system-db:local" "${uprofile}" 2>/dev/null; then
-        echo "system-db:local" >> "${uprofile}"
-    fi
+    [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
+    grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
 }
 
 manage_dconf() {
@@ -85,11 +77,15 @@ manage_dconf() {
 
 manage_sessions() {
     local action="${1:-enable}"
-    echo "${action^}ing extension for active desktop sessions..."
+    local action_display="Enabling"
+    [ "${action}" = "disable" ] && action_display="Disabling"
+    echo "${action_display} extension for active desktop sessions..."
     local uids
     uids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | sort -u || true)
+    local has_user=false
     for uid in $uids; do
         if [ "$uid" -ge 1000 ] 2>/dev/null; then
+            has_user=true
             local uuser
             uuser=$(id -nu "$uid" 2>/dev/null || true)
             if [ -n "$uuser" ] && [ -d "/run/user/${uid}" ]; then
@@ -105,12 +101,20 @@ manage_sessions() {
             sudo -u "${SUDO_USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${suid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
         fi
     fi
+
+    if [ "${has_user}" = "false" ]; then
+        if systemctl is-active --quiet gdm 2>/dev/null || systemctl is-active --quiet gdm3 2>/dev/null; then
+            systemctl restart gdm 2>/dev/null || systemctl restart gdm3 2>/dev/null || true
+        fi
+    fi
 }
 
 cmd_set_state() {
     local action="$1"
     local bool_val="$([ "${action}" = "enable" ] && echo "true" || echo "false")"
-    echo "${action^}ing Sylepsign..."
+    local action_display="Enabling"
+    [ "${action}" = "disable" ] && action_display="Disabling"
+    echo "${action_display} Sylepsign..."
 
     if [ "$(id -u)" -ne 0 ]; then
         command -v gnome-extensions >/dev/null 2>&1 && gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
@@ -145,20 +149,17 @@ cmd_uninstall() {
         systemctl stop sylepsign.service 2>/dev/null || true
     fi
 
-    rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf"
-    rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}" /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
-    rm -f "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
+    rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf" \
+          "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
           /etc/dconf/db/gdm.d/10-sylepsign /etc/dconf/db/local.d/10-sylepsign \
-          "${POLKIT_DIR}/org.sylepsign.policy"
-
+          "${POLKIT_DIR}/org.sylepsign.policy" "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
+    rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}" /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
     command -v dconf >/dev/null 2>&1 && dconf update 2>/dev/null || true
     command -v glib-compile-schemas >/dev/null 2>&1 && glib-compile-schemas "${SCHEMA_DIR}" 2>/dev/null || true
     if command -v systemctl >/dev/null 2>&1; then
         systemctl reload dbus 2>/dev/null || true
         systemctl daemon-reload 2>/dev/null || true
     fi
-
-    rm -f "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
     echo "Sylepsign has been completely uninstalled."
 }
 

@@ -158,40 +158,31 @@ set_logo() {
     chmod 0644 "${dest}"
 
     local enabled="true"
-    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
-        if grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
-            enabled="false"
-        fi
+    if [ -f "${GDM_DIR}/10-sylepsign" ] && grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
+        enabled="false"
     fi
 
-    local kv_pairs=""
-    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
-        kv_pairs=$(grep -E '^[a-zA-Z0-9_-]+=.+$' "${GDM_DIR}/10-sylepsign" | grep -v 'enable-gdm-signage=' | grep -v 'greeter-logo-path=' | tr '\n' ';' || true)
-    fi
-    kv_pairs="${kv_pairs}greeter-logo-path='${dest}'"
-
-    sync_gdm "sync-gdm" "${enabled}" "${kv_pairs}" >/dev/null
+    local kvs
+    kvs="$(get_sylepsign_kvs)"
+    sync_gdm "sync-gdm" "${enabled}" "${kvs}greeter-logo-path='${dest}'" >/dev/null
     echo "SET_LOGO_OK:${dest}"
 }
 
+get_sylepsign_kvs() {
+    [ ! -f "${GDM_DIR}/10-sylepsign" ] && return 0
+    sed -n '/^\[org\/gnome\/shell\/extensions\/sylepsign\]/,/^\[/p' "${GDM_DIR}/10-sylepsign" | \
+        grep -E '^[a-zA-Z0-9_-]+=.+$' | \
+        grep -vE '^(enable-gdm-signage|greeter-logo-path|enabled-extensions|logo)=' | \
+        tr '\n' ';' || true
+}
+
 reset_logo() {
-    if [ -d "${BRANDING_DIR}" ]; then
-        rm -f "${BRANDING_DIR}"/*
-    fi
-
+    [ -d "${BRANDING_DIR}" ] && rm -f "${BRANDING_DIR}"/*
     local enabled="true"
-    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
-        if grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
-            enabled="false"
-        fi
+    if [ -f "${GDM_DIR}/10-sylepsign" ] && grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
+        enabled="false"
     fi
-
-    local kv_pairs=""
-    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
-        kv_pairs=$(grep -E '^[a-zA-Z0-9_-]+=.+$' "${GDM_DIR}/10-sylepsign" | grep -v 'enable-gdm-signage=' | grep -v 'greeter-logo-path=' | tr '\n' ';' || true)
-    fi
-
-    sync_gdm "sync-gdm" "${enabled}" "${kv_pairs}" >/dev/null
+    sync_gdm "sync-gdm" "${enabled}" "$(get_sylepsign_kvs)" >/dev/null
     echo "RESET_LOGO_OK"
 }
 

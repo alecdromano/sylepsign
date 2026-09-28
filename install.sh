@@ -124,7 +124,6 @@ EOF
 
     cp "${SCRIPT_DIR}/systemd/org.sylepsign.conf" "${DBUS_POLICY_DIR}/org.sylepsign.conf"
     cp "${SCRIPT_DIR}/systemd/sylepsign.service" "${SYSTEMD_DIR}/sylepsign.service"
-
     systemctl daemon-reload
     systemctl reload dbus || true
     systemctl enable --now sylepsign.service
@@ -149,9 +148,7 @@ install_helper() {
 
 install_extension() {
     echo "Installing GNOME Shell extension..."
-    if [ -x "${SCRIPT_DIR}/bin/locale" ]; then
-        "${SCRIPT_DIR}/bin/locale" || true
-    fi
+    [ -x "${SCRIPT_DIR}/bin/locale" ] && "${SCRIPT_DIR}/bin/locale" || true
     rm -rf "${EXT_INSTALL_DIR}"
     mkdir -p "${EXT_INSTALL_DIR}"
     cp -r "${SCRIPT_DIR}/ext/"* "${EXT_INSTALL_DIR}/"
@@ -163,29 +160,29 @@ install_extension() {
 configure_dconf() {
     echo "Configuring system dconf databases (GDM and desktop sessions)..."
     mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
-
     printf "[org/gnome/shell]\nenabled-extensions=['${UUID}']\n" | tee /etc/dconf/db/gdm.d/10-sylepsign > /etc/dconf/db/local.d/10-sylepsign
-
     for prof in gdm Debian-gdm; do
         local pfile="/etc/dconf/profile/${prof}"
         [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
         grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
     done
-
     local uprofile="/etc/dconf/profile/user"
     [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
     grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
-
     dconf update || true
 }
 
 manage_sessions() {
     local action="${1:-enable}"
-    echo "${action^}ing extension for active desktop sessions..."
+    local action_display="Enabling"
+    [ "${action}" = "disable" ] && action_display="Disabling"
+    echo "${action_display} extension for active desktop sessions..."
     local uids
     uids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | sort -u || true)
+    local has_user=false
     for uid in $uids; do
         if [ "$uid" -ge 1000 ] 2>/dev/null; then
+            has_user=true
             local uuser
             uuser=$(id -nu "$uid" 2>/dev/null || true)
             if [ -n "$uuser" ] && [ -d "/run/user/${uid}" ]; then
@@ -199,6 +196,12 @@ manage_sessions() {
         suid=$(id -u "${SUDO_USER}" 2>/dev/null || true)
         if [ -n "${suid}" ] && [ -d "/run/user/${suid}" ]; then
             sudo -u "${SUDO_USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${suid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+        fi
+    fi
+
+    if [ "${has_user}" = "false" ]; then
+        if systemctl is-active --quiet gdm 2>/dev/null || systemctl is-active --quiet gdm3 2>/dev/null; then
+            systemctl restart gdm 2>/dev/null || systemctl restart gdm3 2>/dev/null || true
         fi
     fi
 }
