@@ -233,10 +233,10 @@ case "${ACTION}" in
         install_dependencies
         bootstrap_source
         setup_directories
-        install_daemon
-        install_cli
-        install_helper
         install_extension
+        install_helper
+        install_cli
+        install_daemon
         configure_dconf
         manage_sessions enable
         echo "=== Sylepsign Installation Complete ==="

@@ -7,7 +7,10 @@ export class UpdateManager {
         this.repo = repo;
         this.branch = branch;
         this.session = new Soup.Session();
-        this.currentVersion = this.readCurrentVersion();
+    }
+
+    get currentVersion() {
+        return this.readCurrentVersion();
     }
 
     readCurrentVersion() {
