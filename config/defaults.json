@@ -1,0 +1,45 @@
+{
+    "general": {
+        "enabled": true,
+        "enable_gdm": true,
+        "enable_lockscreen": true,
+        "idle_minutes": 5,
+        "inhibit_sleep": true
+    },
+    "playback": {
+        "order": "random",
+        "speed": 1.0,
+        "hwdec": "auto",
+        "vo": "auto",
+        "multi_monitor": "different",
+        "fit": "cover"
+    },
+    "visuals": {
+        "chrome_fade_seconds": 30,
+        "chrome_fade_duration_ms": 800,
+        "chrome_fade_min_opacity": 0,
+        "dim_alpha": 50,
+        "dim_color": "#000000",
+        "logo_path": ""
+    },
+    "mesh": {
+        "enabled": true,
+        "http_port": 8765,
+        "enable_server": true,
+        "enable_fetch": true,
+        "trickle_seconds": 60,
+        "max_cache_gb": 10,
+        "mdns_type": "_signage-pool._tcp"
+    },
+    "paths": {
+        "system_pool": "/var/lib/signage-pool",
+        "system_cache": "/var/cache/signage-videos",
+        "system_conf": "/etc/signage/signage.conf",
+        "gdm_dconf": "/etc/dconf/db/gdm.d/10-sylepsign"
+    },
+    "updater": {
+        "repo": "alecdromano/sylepsign",
+        "branch": "main",
+        "api_url": "https://api.github.com/repos/alecdromano/sylepsign/releases/latest"
+    }
+}

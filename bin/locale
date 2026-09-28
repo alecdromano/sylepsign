@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="sylepsign@alecromano.com"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PO_DIR="${PROJECT_ROOT}/po"
+LOCALE_DIR="${PROJECT_ROOT}/ext/locale"
+
+compile_with_msgfmt() {
+    local po_file="$1"
+    local mo_file="$2"
+    msgfmt -o "${mo_file}" "${po_file}"
+}
+
+compile_with_fallback() {
+    local po_file="$1"
+    local mo_file="$2"
+
+    perl -e '
+use strict;
+use warnings;
+use Encode qw(encode);
+
+my ($po_path, $mo_path) = @ARGV;
+open my $fh, "<:encoding(UTF-8)", $po_path or die "Cannot open $po_path: $!\n";
+my $content = do { local $/; <$fh> };
+close $fh;
+
+my %entries;
+while ($content =~ /msgid\s+"((?:[^"\\]|\\.)*)"\s+msgstr\s+"((?:[^"\\]|\\.)*)"/sg) {
+    my ($k, $v) = ($1, $2);
+    for ($k, $v) {
+        s/\\n/\n/g; s/\\t/\t/g; s/\\r/\r/g; s/\\"/"/g; s/\\\\/\\/g;
+    }
+    if (length $k && length $v) {
+        $entries{$k} = $v;
+    }
+}
+
+my @keys = sort keys %entries;
+my ($ids_bytes, $strs_bytes) = ("", "");
+my @offsets;
+
+for my $k (@keys) {
+    my $v = $entries{$k};
+    my $k_b = encode("UTF-8", $k) . "\0";
+    my $v_b = encode("UTF-8", $v) . "\0";
+    push @offsets, [length($ids_bytes), length($k_b) - 1, length($strs_bytes), length($v_b) - 1];
+    $ids_bytes .= $k_b;
+    $strs_bytes .= $v_b;
+}
+
+my $keystart = 7 * 4 + scalar(@keys) * 16;
+my $valuestart = $keystart + length($ids_bytes);
+my (@koffsets, @voffsets);
+
+for my $off (@offsets) {
+    push @koffsets, ($off->[1], $keystart + $off->[0]);
+    push @voffsets, ($off->[3], $valuestart + $off->[2]);
+}
+
+my $magic = 0x950412de;
+my $header = pack("Iiiiiii", $magic, 0, scalar(@keys), 7 * 4, 7 * 4 + scalar(@keys) * 8, 0, 0);
+my $data = $header . pack("i*", @koffsets) . pack("i*", @voffsets) . $ids_bytes . $strs_bytes;
+
+open my $out, ">:raw", $mo_path or die "Cannot write $mo_path: $!\n";
+print $out $data;
+close $out;
+' "${po_file}" "${mo_file}"
+}
+
+compile_po() {
+    local po_file="$1"
+    local lang
+    lang="$(basename "${po_file}" .po)"
+    local target_dir="${LOCALE_DIR}/${lang}/LC_MESSAGES"
+    local mo_file="${target_dir}/${DOMAIN}.mo"
+
+    mkdir -p "${target_dir}"
+
+    if command -v msgfmt >/dev/null 2>&1; then
+        compile_with_msgfmt "${po_file}" "${mo_file}"
+    else
+        compile_with_fallback "${po_file}" "${mo_file}"
+    fi
+
+    echo "Compiled ${po_file} -> ${mo_file}"
+}
+
+compile_all() {
+    if [ ! -d "${PO_DIR}" ]; then
+        echo "No po/ directory found at ${PO_DIR}"
+        return 0
+    fi
+
+    shopt -s nullglob
+    local po_files=("${PO_DIR}"/*.po)
+    shopt -u nullglob
+
+    if [ ${#po_files[@]} -eq 0 ]; then
+        echo "No .po files found in ${PO_DIR}"
+        return 0
+    fi
+
+    for po_file in "${po_files[@]}"; do
+        compile_po "${po_file}"
+    done
+}
+
+main() {
+    compile_all
+}
+
+main "$@"

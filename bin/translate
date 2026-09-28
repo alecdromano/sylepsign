@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LAYOUT_FILE="${PROJECT_ROOT}/ext/ui/layout.json"
+PO_DIR="${PROJECT_ROOT}/po"
+POT_FILE="${PO_DIR}/sylepsign.pot"
+LOCALE_BIN="${PROJECT_ROOT}/bin/locale"
+
+extract_strings() {
+    jq -c '
+    [
+      (
+        .pages[]? | (
+          .title,
+          (
+            .groups[]? | (
+              .title,
+              (
+                .rows[]? | (
+                  .title,
+                  .subtitle,
+                  .custom_title,
+                  .button_label,
+                  .loading_label,
+                  .success_label,
+                  .failure_label,
+                  .retry_label,
+                  .repeat_label,
+                  (.options[]?.label),
+                  (.presets[]?.label)
+                )
+              )
+            )
+          )
+        )
+      ),
+      (.messages[]?)
+    ] | map(select(. != null and . != "")) | unique
+    ' "${LAYOUT_FILE}"
+}
+
+map_locale() {
+    local code="$1"
+    case "${code}" in
+        zh_CN) echo "zh-CN" ;;
+        zh_TW) echo "zh-TW" ;;
+        pt_BR) echo "pt" ;;
+        ja_JP) echo "ja" ;;
+        ko_KR) echo "ko" ;;
+        *) echo "${code%%_*}" ;;
+    esac
+}
+
+parse_existing_po() {
+    local po_file="$1"
+    if [ ! -f "${po_file}" ]; then
+        echo "{}"
+        return 0
+    fi
+
+    perl -e '
+use strict;
+use warnings;
+use JSON::PP;
+
+my ($po_path) = @ARGV;
+open my $fh, "<:encoding(UTF-8)", $po_path or die $!;
+my $content = do { local $/; <$fh> };
+close $fh;
+
+my %entries;
+while ($content =~ /msgid\s+"((?:[^"\\]|\\.)*)"\s+msgstr\s+"((?:[^"\\]|\\.)*)"/sg) {
+    my ($k, $v) = ($1, $2);
+    for ($k, $v) {
+        s/\\n/\n/g; s/\\t/\t/g; s/\\r/\r/g; s/\\"/"/g; s/\\\\/\\/g;
+    }
+    if (length $k && length $v) {
+        $entries{$k} = $v;
+    }
+}
+print encode_json(\%entries);
+' "${po_file}"
+}
+
+auto_translate_text() {
+    local text="$1"
+    local target_lang="$2"
+
+    local resp
+    resp=$(curl -s -f -m 6 -G \
+        --data-urlencode "q=${text}" \
+        "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${target_lang}&dt=t" \
+        -A "Mozilla/5.0" 2>/dev/null || true)
+
+    if [ -n "${resp}" ]; then
+        local translated
+        translated=$(echo "${resp}" | jq -r '.[0][][0]' 2>/dev/null | tr -d '\n' || true)
+        if [ -n "${translated}" ]; then
+            echo "${translated}"
+            return 0
+        fi
+    fi
+
+    echo "${text}"
+}
+
+write_pot() {
+    local strings_json="$1"
+    mkdir -p "${PO_DIR}"
+
+    local pot_date
+    pot_date="$(date -u +"%Y-%m-%d %H:%M%z")"
+
+    {
+        cat << EOF
+# Sylepsign Video Signage Subsystem
+# Copyright (C) 2026 Alec Romano
+# This file is distributed under the same license as the Sylepsign package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sylepsign\n"
+"Report-Msgid-Bugs-To: alec@alecromano.com\n"
+"POT-Creation-Date: ${pot_date}\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+EOF
+        jq -r '.[] | "#: ext/ui/layout.json\nmsgid \(tojson)\nmsgstr \"\"\n"' <<< "${strings_json}"
+    } > "${POT_FILE}"
+}
+
+update_language() {
+    local lang="$1"
+    local strings_json="$2"
+    local po_file="${PO_DIR}/${lang}.po"
+    local target_lang
+    target_lang="$(map_locale "${lang}")"
+
+    local existing_json
+    existing_json="$(parse_existing_po "${po_file}")"
+
+    local missing_strings
+    missing_strings=$(jq -r --argjson trans "${existing_json}" '.[] | select(($trans[.] // "") == "")' <<< "${strings_json}")
+
+    local missing_count=0
+    local new_entries_json="{}"
+
+    if [ -n "${missing_strings}" ]; then
+        while IFS= read -r str; do
+            [ -z "${str}" ] && continue
+            echo "Auto-translating (${lang}): '${str}'"
+            local translated
+            translated="$(auto_translate_text "${str}" "${target_lang}")"
+            new_entries_json=$(jq -c --arg k "${str}" --arg v "${translated}" '.[$k] = $v' <<< "${new_entries_json}")
+            missing_count=$((missing_count + 1))
+        done <<< "${missing_strings}"
+    fi
+
+    local merged_json
+    merged_json=$(jq -c -s '.[0] * .[1]' <<< "${existing_json} ${new_entries_json}")
+
+    mkdir -p "${PO_DIR}"
+    {
+        cat << EOF
+# Sylepsign Translation Catalog (${lang})
+# Copyright (C) 2026 Alec Romano
+# This file is distributed under the same license as the Sylepsign package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sylepsign\n"
+"Report-Msgid-Bugs-To: alec@alecromano.com\n"
+"Language: ${lang}\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+EOF
+        jq -r --argjson trans "${merged_json}" '
+            .[] as $id | "#: ext/ui/layout.json\nmsgid \($id | tojson)\nmsgstr \(($trans[$id] // "") | tojson)\n"
+        ' <<< "${strings_json}"
+    } > "${po_file}"
+
+    echo "Updated ${po_file} (${missing_count} newly translated strings)."
+}
+
+main() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "Error: jq is required but not installed." >&2
+        exit 1
+    fi
+
+    local strings_json
+    strings_json="$(extract_strings)"
+
+    write_pot "${strings_json}"
+
+    local targets=("$@")
+    if [ ${#targets[@]} -eq 0 ]; then
+        shopt -s nullglob
+        local found_pos=("${PO_DIR}"/*.po)
+        shopt -u nullglob
+
+        if [ ${#found_pos[@]} -gt 0 ]; then
+            for f in "${found_pos[@]}"; do
+                targets+=("$(basename "${f}" .po)")
+            done
+        else
+            targets=("zh_CN")
+        fi
+    fi
+
+    for target in "${targets[@]}"; do
+        update_language "${target}" "${strings_json}"
+    done
+
+    if [ -x "${LOCALE_BIN}" ]; then
+        "${LOCALE_BIN}"
+    fi
+}
+
+main "$@"

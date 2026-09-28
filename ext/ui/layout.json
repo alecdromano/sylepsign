@@ -1,0 +1,423 @@
+{
+    "pages": [
+        {
+            "id": "program",
+            "title": "Program",
+            "icon": "preferences-system-symbolic",
+            "groups": [
+                {
+                    "id": "master_activation",
+                    "title": "Master System Activation",
+                    "rows": [
+                        {
+                            "type": "switch",
+                            "key": "enable-gdm-signage",
+                            "title": "Master System Signage",
+                            "subtitle": "Master toggle required for video signage playback and GDM login greeter"
+                        }
+                    ]
+                },
+                {
+                    "id": "software_updates",
+                    "title": "Software & Updates",
+                    "rows": [
+                        {
+                            "type": "action",
+                            "action_id": "installed_version",
+                            "title": "Installed Version"
+                        },
+                        {
+                            "type": "button",
+                            "action_id": "check_updates",
+                            "title": "Check for Updates",
+                            "subtitle": "Query GitHub for newer releases and updates",
+                            "button_label": "Check for Updates",
+                            "loading_label": "Checking…",
+                            "repeat_label": "Check Again"
+                        },
+                        {
+                            "type": "action",
+                            "action_id": "update_status",
+                            "title": "Release Status",
+                            "subtitle": "Click \"Check for Updates\" to query GitHub"
+                        }
+                    ]
+                },
+                {
+                    "id": "upgrade_section",
+                    "title": "Available Upgrade",
+                    "visible": false,
+                    "rows": [
+                        {
+                            "type": "button",
+                            "action_id": "apply_upgrade",
+                            "title": "Install Release (sylepsign upgrade)",
+                            "subtitle": "Download and install the latest release",
+                            "button_label": "Upgrade",
+                            "loading_label": "Updating…",
+                            "success_label": "Upgraded!",
+                            "retry_label": "Retry Upgrade",
+                            "button_css": ["suggested-action"]
+                        }
+                    ]
+                },
+                {
+                    "id": "system_dependencies",
+                    "title": "System Dependencies",
+                    "rows": [
+                        {
+                            "type": "action",
+                            "action_id": "dep_mpv",
+                            "title": "Video Player Backend (mpv)",
+                            "subtitle": "Checking mpv installation…"
+                        },
+                        {
+                            "type": "action",
+                            "action_id": "dep_avahi",
+                            "title": "mDNS Discovery Service (Avahi)",
+                            "subtitle": "Checking Avahi installation…"
+                        }
+                    ]
+                },
+                {
+                    "id": "about_support",
+                    "title": "Project & Community",
+                    "rows": [
+                        {
+                            "type": "button",
+                            "action_id": "github_link",
+                            "title": "GitHub Repository",
+                            "subtitle": "Source code, bug reports, and releases",
+                            "button_label": "View Repository"
+                        },
+                        {
+                            "type": "button",
+                            "action_id": "donate_bubble_tea",
+                            "title": "Buy me a bubble tea 🧋",
+                            "subtitle": "Support continued maintenance and open-source development",
+                            "button_label": "Donate",
+                            "button_css": ["suggested-action"]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "media",
+            "title": "Media",
+            "icon": "video-x-generic-symbolic",
+            "groups": [
+                {
+                    "id": "pool_files",
+                    "title": "Signage Video Pool",
+                    "rows": []
+                },
+                {
+                    "id": "peer_sync",
+                    "title": "Network Asset Mesh",
+                    "rows": [
+                        {
+                            "type": "switch",
+                            "key": "enable-mesh",
+                            "title": "Enable Asset Mesh",
+                            "subtitle": "Share and trickle-sync video assets across local network peers"
+                        },
+                        {
+                            "type": "action",
+                            "action_id": "mesh_status",
+                            "title": "Network Discovery",
+                            "subtitle": "Scanning for local peers via Avahi mDNS…"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "trickle-interval-minutes",
+                            "title": "Adoption Trickle Interval",
+                            "subtitle": "How often this workstation adopts a new video from available network peers",
+                            "stepped": true,
+                            "min": 15,
+                            "max": 180,
+                            "step": 15,
+                            "mark_step": 30,
+                            "page": 30,
+                            "unit": "min"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "max-cache",
+                            "title": "Maximum Cached Videos",
+                            "subtitle": "Maximum number of adopted peer videos retained in local cache",
+                            "stepped": true,
+                            "min": 5,
+                            "max": 50,
+                            "step": 5,
+                            "mark_step": 5,
+                            "page": 5,
+                            "unit": ""
+                        }
+                    ]
+                },
+                {
+                    "id": "cache_maintenance",
+                    "title": "Cache Storage & Maintenance",
+                    "rows": [
+                        {
+                            "type": "button",
+                            "action_id": "uncache",
+                            "title": "Mesh Download Cache",
+                            "subtitle": "Stored at /var/cache/signage-videos",
+                            "button_label": "Uncache",
+                            "loading_label": "Clearing…",
+                            "success_label": "Uncached",
+                            "failure_label": "Failed"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "playback",
+            "title": "Playback",
+            "icon": "media-playback-start-symbolic",
+            "groups": [
+                {
+                    "id": "playback_controls",
+                    "title": "Playback Controls",
+                    "rows": [
+                        {
+                            "type": "combo",
+                            "key": "playback-order",
+                            "value_type": "string",
+                            "title": "Playback Order",
+                            "subtitle": "Order in which videos are queued and played",
+                            "options": [
+                                { "label": "Random / Shuffle", "value": "random" },
+                                { "label": "Alphabetical", "value": "alphabetical" },
+                                { "label": "Sequential", "value": "sequential" }
+                            ]
+                        },
+                        {
+                            "type": "combo",
+                            "key": "playback-speed",
+                            "value_type": "double",
+                            "title": "Playback Speed",
+                            "subtitle": "Video playback rate multiplier",
+                            "options": [
+                                { "label": "0.5x (Slow Motion)", "value": 0.5 },
+                                { "label": "0.75x (Relaxed)", "value": 0.75 },
+                                { "label": "1.0x (Normal)", "value": 1.0 },
+                                { "label": "1.25x (Brisk)", "value": 1.25 },
+                                { "label": "1.5x (Fast)", "value": 1.5 },
+                                { "label": "2.0x (Double Speed)", "value": 2.0 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "display_presentation",
+                    "title": "Display & Presentation",
+                    "rows": [
+                        {
+                            "type": "combo",
+                            "key": "multi-monitor-mode",
+                            "value_type": "string",
+                            "title": "Multi-Monitor Presentation",
+                            "subtitle": "How video playback is distributed across connected displays",
+                            "options": [
+                                { "label": "Play Different Video Per Screen", "value": "different" },
+                                { "label": "Mirror Video Across All Screens", "value": "mirror" }
+                            ]
+                        },
+                        {
+                            "type": "combo",
+                            "key": "video-fit",
+                            "value_type": "string",
+                            "title": "Video Scaling & Fit",
+                            "subtitle": "Aspect ratio and frame scaling applied to displays",
+                            "options": [
+                                { "label": "Cover (Crop & Fill)", "value": "cover" },
+                                { "label": "Fill (Letterbox)", "value": "fill" },
+                                { "label": "Stretch (Ignore Aspect Ratio)", "value": "stretch" }
+                            ]
+                        },
+                        {
+                            "type": "switch",
+                            "key": "inhibit-screen-sleep",
+                            "title": "Inhibit Display Power Sleep",
+                            "subtitle": "Prevent monitors from entering DPMS sleep mode while video is playing"
+                        }
+                    ]
+                },
+                {
+                    "id": "rendering_engine",
+                    "title": "Hardware & Rendering Engine",
+                    "rows": [
+                        {
+                            "type": "combo",
+                            "key": "vo-driver",
+                            "value_type": "string",
+                            "title": "Video Output Driver (VO)",
+                            "subtitle": "Rendering backend for mpv compositor surface",
+                            "options": [
+                                { "label": "Auto-detect (Optimal)", "value": "auto" },
+                                { "label": "GPU Acceleration (OpenGL / Vulkan)", "value": "gpu" },
+                                { "label": "Wayland Shared Memory (wlshm / VM Safe)", "value": "wlshm" }
+                            ]
+                        },
+                        {
+                            "type": "combo",
+                            "key": "hwdec-mode",
+                            "value_type": "string",
+                            "title": "Hardware Video Decoding",
+                            "subtitle": "Codec acceleration for video stream processing",
+                            "options": [
+                                { "label": "Auto-detect", "value": "auto" },
+                                { "label": "Disabled (Software CPU)", "value": "no" },
+                                { "label": "VA-API (Intel / AMD)", "value": "vaapi" },
+                                { "label": "NVDEC (NVIDIA)", "value": "nvdec" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "appearance",
+            "title": "Appearance",
+            "icon": "applications-graphics-symbolic",
+            "groups": [
+                {
+                    "id": "idle_fade",
+                    "title": "Idle Fade Animation",
+                    "rows": [
+                        {
+                            "type": "slider",
+                            "key": "chrome-fade-idle-seconds",
+                            "title": "Idle Inactivity Delay",
+                            "subtitle": "Seconds of inactivity before login UI fades to reveal full video",
+                            "stepped": true,
+                            "min": 5,
+                            "max": 60,
+                            "step": 5,
+                            "mark_step": 5,
+                            "page": 10,
+                            "unit": "s"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "chrome-fade-duration-ms",
+                            "title": "Fade Transition Duration",
+                            "subtitle": "Length of the fade animation transition (e.g. 800ms for smooth cinema)",
+                            "stepped": true,
+                            "min": 200,
+                            "max": 2000,
+                            "step": 200,
+                            "mark_step": 200,
+                            "page": 200,
+                            "unit": "ms"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "chrome-fade-min-opacity",
+                            "title": "Faded Minimum Opacity",
+                            "subtitle": "0% fades completely invisible; 10-20% keeps subtle ambient login hints",
+                            "stepped": true,
+                            "min": 0,
+                            "max": 50,
+                            "step": 10,
+                            "mark_step": 10,
+                            "page": 10,
+                            "unit": "%"
+                        }
+                    ]
+                },
+                {
+                    "id": "backdrop_tint",
+                    "title": "Backdrop Shade & Tint",
+                    "rows": [
+                        {
+                            "type": "color",
+                            "key": "dim-color",
+                            "title": "Backdrop Shade Color",
+                            "subtitle": "Color of the dark tint behind login controls to enhance legibility"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "dim-alpha",
+                            "title": "Backdrop Tint Opacity",
+                            "subtitle": "Opacity percentage of the backdrop tint (0 is clear, 100 is solid)",
+                            "stepped": false,
+                            "min": 0,
+                            "max": 100,
+                            "step": 1,
+                            "page": 10,
+                            "unit": "%"
+                        }
+                    ]
+                },
+                {
+                    "id": "branding",
+                    "title": "Branding & Greeter Logo",
+                    "rows": [
+                        {
+                            "type": "action",
+                            "action_id": "greeter_logo",
+                            "title": "Greeter Logo",
+                            "subtitle": "Override the stock operating system logo on the login screen"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "lockscreen",
+            "title": "Lock Screen",
+            "icon": "system-lock-screen-symbolic",
+            "groups": [
+                {
+                    "id": "user_lockscreen",
+                    "title": "User Session Lock Screen",
+                    "rows": [
+                        {
+                            "type": "switch",
+                            "key": "enable-user-lockscreen",
+                            "title": "Replace User Lock Screen",
+                            "subtitle": "Bypass standard GNOME lock screen on idle/lock and activate video signage"
+                        },
+                        {
+                            "type": "slider",
+                            "key": "minutes-after-idle",
+                            "title": "Inactivity Timeout",
+                            "subtitle": "Minutes of user absence before desktop locks and signage activates",
+                            "min": 1,
+                            "max": 60,
+                            "step": 1,
+                            "page": 5,
+                            "unit": "min"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "messages": {
+        "pool_querying": "Querying daemon...",
+        "pool_active": "Local media directory active",
+        "pool_indexed": "{count} video(s) available ({mb} MB indexed)",
+        "mesh_scanning": "Scanning for local peers via Avahi mDNS…",
+        "mesh_peer_single": "Active on port {port} (1 peer connected)",
+        "mesh_peer_multi": "Active on port {port} ({peers} peers connected)",
+        "uncache_cleared": "Removed {count} cached video(s)",
+        "update_failed": "Failed to connect to GitHub.",
+        "update_available": "Update available: v{version}",
+        "upgrade_ready": "Version {version} ready to install.",
+        "up_to_date": "Sylepsign is up to date!",
+        "upgrade_success": "Upgrade installed successfully. Please restart service or session.",
+        "upgrade_failed": "Update failed: {error}",
+        "logo_stock": "Using stock operating system logo",
+        "logo_custom": "Custom logo: {file}",
+        "logo_change": "Change Logo…",
+        "logo_reset": "Restore Stock Logo",
+        "logo_dialog_title": "Select Greeter Logo Image",
+        "logo_filter_images": "Image Files (*.png, *.svg, *.jpg, *.webp)"
+    }
+}

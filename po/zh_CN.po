@@ -1,0 +1,525 @@
+# Sylepsign Translation Catalog (zh_CN)
+# Copyright (C) 2026 Alec Romano
+# This file is distributed under the same license as the Sylepsign package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sylepsign\n"
+"Report-Msgid-Bugs-To: alec@alecromano.com\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ext/ui/layout.json
+msgid "0% fades completely invisible; 10-20% keeps subtle ambient login hints"
+msgstr "0% 褪色完全不可见； 10-20% 保留微妙的环境登录提示"
+
+#: ext/ui/layout.json
+msgid "0.5x (Slow Motion)"
+msgstr "0.5x（慢动作）"
+
+#: ext/ui/layout.json
+msgid "0.75x (Relaxed)"
+msgstr "0.75x（放松）"
+
+#: ext/ui/layout.json
+msgid "1.0x (Normal)"
+msgstr "1.0x（正常）"
+
+#: ext/ui/layout.json
+msgid "1.25x (Brisk)"
+msgstr "1.25x（轻快）"
+
+#: ext/ui/layout.json
+msgid "1.5x (Fast)"
+msgstr "1.5 倍（快速）"
+
+#: ext/ui/layout.json
+msgid "2.0x (Double Speed)"
+msgstr "2.0x（双速）"
+
+#: ext/ui/layout.json
+msgid "Active on port {port} (1 peer connected)"
+msgstr "在端口 {port} 上处于活动状态（已连接 1 个对等点）"
+
+#: ext/ui/layout.json
+msgid "Active on port {port} ({peers} peers connected)"
+msgstr "在端口 {port} 上处于活动状态（{peers} 对等点已连接）"
+
+#: ext/ui/layout.json
+msgid "Adoption Trickle Interval"
+msgstr "领养时间间隔"
+
+#: ext/ui/layout.json
+msgid "Alphabetical"
+msgstr "按字母顺序"
+
+#: ext/ui/layout.json
+msgid "Appearance"
+msgstr "外貌"
+
+#: ext/ui/layout.json
+msgid "Aspect ratio and frame scaling applied to displays"
+msgstr "应用于显示器的长宽比和帧缩放"
+
+#: ext/ui/layout.json
+msgid "Auto-detect"
+msgstr "自动检测"
+
+#: ext/ui/layout.json
+msgid "Auto-detect (Optimal)"
+msgstr "自动检测（最佳）"
+
+#: ext/ui/layout.json
+msgid "Available Upgrade"
+msgstr "可用升级"
+
+#: ext/ui/layout.json
+msgid "Backdrop Shade & Tint"
+msgstr "背景颜色和色调"
+
+#: ext/ui/layout.json
+msgid "Backdrop Shade Color"
+msgstr "背景颜色"
+
+#: ext/ui/layout.json
+msgid "Backdrop Tint Opacity"
+msgstr "背景色调不透明度"
+
+#: ext/ui/layout.json
+msgid "Branding & Greeter Logo"
+msgstr "品牌和迎宾标志"
+
+#: ext/ui/layout.json
+msgid "Buy me a bubble tea 🧋"
+msgstr "给我买一杯珍珠奶茶🧋"
+
+#: ext/ui/layout.json
+msgid "Bypass standard GNOME lock screen on idle/lock and activate video signage"
+msgstr "空闲/锁定时绕过标准 GNOME 锁定屏幕并激活视频标牌"
+
+#: ext/ui/layout.json
+msgid "Cache Storage & Maintenance"
+msgstr "缓存存储和维护"
+
+#: ext/ui/layout.json
+msgid "Change Logo…"
+msgstr "更改徽标…"
+
+#: ext/ui/layout.json
+msgid "Check Again"
+msgstr "再次检查"
+
+#: ext/ui/layout.json
+msgid "Check for Updates"
+msgstr "检查更新"
+
+#: ext/ui/layout.json
+msgid "Checking Avahi installation…"
+msgstr "正在检查 Avahi 安装..."
+
+#: ext/ui/layout.json
+msgid "Checking mpv installation…"
+msgstr "检查 mpv 安装..."
+
+#: ext/ui/layout.json
+msgid "Checking…"
+msgstr "检查…"
+
+#: ext/ui/layout.json
+msgid "Clearing…"
+msgstr "清算…"
+
+#: ext/ui/layout.json
+msgid "Click \"Check for Updates\" to query GitHub"
+msgstr "点击“检查更新”即可查询GitHub"
+
+#: ext/ui/layout.json
+msgid "Codec acceleration for video stream processing"
+msgstr "用于视频流处理的编解码器加速"
+
+#: ext/ui/layout.json
+msgid "Color of the dark tint behind login controls to enhance legibility"
+msgstr "登录控件后面的深色颜色可增强易读性"
+
+#: ext/ui/layout.json
+msgid "Cover (Crop & Fill)"
+msgstr "封面（裁剪和填充）"
+
+#: ext/ui/layout.json
+msgid "Custom logo: {file}"
+msgstr "自定义徽标: {file}"
+
+#: ext/ui/layout.json
+msgid "Disabled (Software CPU)"
+msgstr "禁用（软件CPU）"
+
+#: ext/ui/layout.json
+msgid "Display & Presentation"
+msgstr "展示与演示"
+
+#: ext/ui/layout.json
+msgid "Donate"
+msgstr "捐"
+
+#: ext/ui/layout.json
+msgid "Download and install the latest release"
+msgstr "下载并安装最新版本"
+
+#: ext/ui/layout.json
+msgid "Enable Asset Mesh"
+msgstr "启用资产网格"
+
+#: ext/ui/layout.json
+msgid "Fade Transition Duration"
+msgstr "淡入淡出过渡持续时间"
+
+#: ext/ui/layout.json
+msgid "Faded Minimum Opacity"
+msgstr "褪色最小不透明度"
+
+#: ext/ui/layout.json
+msgid "Failed"
+msgstr "失败的"
+
+#: ext/ui/layout.json
+msgid "Failed to connect to GitHub."
+msgstr "无法连接到 GitHub。"
+
+#: ext/ui/layout.json
+msgid "Fill (Letterbox)"
+msgstr "填写（信箱）"
+
+#: ext/ui/layout.json
+msgid "GPU Acceleration (OpenGL / Vulkan)"
+msgstr "GPU 加速（OpenGL/Vulkan）"
+
+#: ext/ui/layout.json
+msgid "GitHub Repository"
+msgstr "GitHub 存储库"
+
+#: ext/ui/layout.json
+msgid "Greeter Logo"
+msgstr "登录界面徽标"
+
+#: ext/ui/layout.json
+msgid "Hardware & Rendering Engine"
+msgstr "硬件和渲染引擎"
+
+#: ext/ui/layout.json
+msgid "Hardware Video Decoding"
+msgstr "硬件视频解码"
+
+#: ext/ui/layout.json
+msgid "How often this workstation adopts a new video from available network peers"
+msgstr "该工作站采用来自可用网络对等点的新视频的频率"
+
+#: ext/ui/layout.json
+msgid "How video playback is distributed across connected displays"
+msgstr "视频播放如何分布在连接的显示器上"
+
+#: ext/ui/layout.json
+msgid "Idle Fade Animation"
+msgstr "空闲淡入淡出动画"
+
+#: ext/ui/layout.json
+msgid "Idle Inactivity Delay"
+msgstr "空闲不活动延迟"
+
+#: ext/ui/layout.json
+msgid "Image Files (*.png, *.svg, *.jpg, *.webp)"
+msgstr "图像文件 (*.png, *.svg, *.jpg, *.webp)"
+
+#: ext/ui/layout.json
+msgid "Inactivity Timeout"
+msgstr "不活动超时"
+
+#: ext/ui/layout.json
+msgid "Inhibit Display Power Sleep"
+msgstr "禁止显示电源休眠"
+
+#: ext/ui/layout.json
+msgid "Install Release (sylepsign upgrade)"
+msgstr "安装发行版（sylepsign升级）"
+
+#: ext/ui/layout.json
+msgid "Installed Version"
+msgstr "安装版本"
+
+#: ext/ui/layout.json
+msgid "Length of the fade animation transition (e.g. 800ms for smooth cinema)"
+msgstr "淡入淡出动画过渡的长度（例如，流畅的影院效果为 800 毫秒）"
+
+#: ext/ui/layout.json
+msgid "Local media directory active"
+msgstr "本地媒体目录处于活动状态"
+
+#: ext/ui/layout.json
+msgid "Lock Screen"
+msgstr "锁屏"
+
+#: ext/ui/layout.json
+msgid "Master System Activation"
+msgstr "主系统激活"
+
+#: ext/ui/layout.json
+msgid "Master System Signage"
+msgstr "主系统标牌"
+
+#: ext/ui/layout.json
+msgid "Master toggle required for video signage playback and GDM login greeter"
+msgstr "视频标牌播放和 GDM 登录问候语所需的主开关"
+
+#: ext/ui/layout.json
+msgid "Maximum Cached Videos"
+msgstr "最大缓存视频数"
+
+#: ext/ui/layout.json
+msgid "Maximum number of adopted peer videos retained in local cache"
+msgstr "本地缓存中保留的最大采纳对端视频数量"
+
+#: ext/ui/layout.json
+msgid "Media"
+msgstr "媒体"
+
+#: ext/ui/layout.json
+msgid "Mesh Download Cache"
+msgstr "网状下载缓存"
+
+#: ext/ui/layout.json
+msgid "Minutes of user absence before desktop locks and signage activates"
+msgstr "桌面锁定和标牌激活之前用户缺席的分钟数"
+
+#: ext/ui/layout.json
+msgid "Mirror Video Across All Screens"
+msgstr "在所有屏幕上镜像视频"
+
+#: ext/ui/layout.json
+msgid "Multi-Monitor Presentation"
+msgstr "多显示器演示"
+
+#: ext/ui/layout.json
+msgid "NVDEC (NVIDIA)"
+msgstr "NVDEC（英伟达）"
+
+#: ext/ui/layout.json
+msgid "Network Asset Mesh"
+msgstr "网络资产网格"
+
+#: ext/ui/layout.json
+msgid "Network Discovery"
+msgstr "网络发现"
+
+#: ext/ui/layout.json
+msgid "Opacity percentage of the backdrop tint (0 is clear, 100 is solid)"
+msgstr "背景色调的不透明度百分比（0 为透明，100 为纯色）"
+
+#: ext/ui/layout.json
+msgid "Order in which videos are queued and played"
+msgstr "视频的排队和播放顺序"
+
+#: ext/ui/layout.json
+msgid "Override the stock operating system logo on the login screen"
+msgstr "替换登录屏幕上的默认操作系统徽标"
+
+#: ext/ui/layout.json
+msgid "Play Different Video Per Screen"
+msgstr "每个屏幕播放不同的视频"
+
+#: ext/ui/layout.json
+msgid "Playback"
+msgstr "回放"
+
+#: ext/ui/layout.json
+msgid "Playback Controls"
+msgstr "播放控制"
+
+#: ext/ui/layout.json
+msgid "Playback Order"
+msgstr "播放顺序"
+
+#: ext/ui/layout.json
+msgid "Playback Speed"
+msgstr "播放速度"
+
+#: ext/ui/layout.json
+msgid "Prevent monitors from entering DPMS sleep mode while video is playing"
+msgstr "防止显示器在播放视频时进入 DPMS 睡眠模式"
+
+#: ext/ui/layout.json
+msgid "Program"
+msgstr "程序"
+
+#: ext/ui/layout.json
+msgid "Project & Community"
+msgstr "项目与社区"
+
+#: ext/ui/layout.json
+msgid "Query GitHub for newer releases and updates"
+msgstr "查询 GitHub 以获取新版本和更新"
+
+#: ext/ui/layout.json
+msgid "Querying daemon..."
+msgstr "正在查询守护进程..."
+
+#: ext/ui/layout.json
+msgid "Random / Shuffle"
+msgstr "随机/随机播放"
+
+#: ext/ui/layout.json
+msgid "Release Status"
+msgstr "发布状态"
+
+#: ext/ui/layout.json
+msgid "Removed {count} cached video(s)"
+msgstr "已删除 {count} 缓存视频"
+
+#: ext/ui/layout.json
+msgid "Rendering backend for mpv compositor surface"
+msgstr "mpv 合成器表面的渲染后端"
+
+#: ext/ui/layout.json
+msgid "Replace User Lock Screen"
+msgstr "更换用户锁屏"
+
+#: ext/ui/layout.json
+msgid "Restore Stock Logo"
+msgstr "恢复默认系统徽标"
+
+#: ext/ui/layout.json
+msgid "Retry Upgrade"
+msgstr "重试升级"
+
+#: ext/ui/layout.json
+msgid "Scanning for local peers via Avahi mDNS…"
+msgstr "通过 Avahi mDNS 扫描本地对等点..."
+
+#: ext/ui/layout.json
+msgid "Seconds of inactivity before login UI fades to reveal full video"
+msgstr "登录 UI 淡出以显示完整视频之前不活动的秒数"
+
+#: ext/ui/layout.json
+msgid "Select Greeter Logo Image"
+msgstr "选择登录界面徽标图像"
+
+#: ext/ui/layout.json
+msgid "Sequential"
+msgstr "顺序"
+
+#: ext/ui/layout.json
+msgid "Share and trickle-sync video assets across local network peers"
+msgstr "在本地网络对等点之间共享和同步视频资产"
+
+#: ext/ui/layout.json
+msgid "Signage Video Pool"
+msgstr "标牌视频池"
+
+#: ext/ui/layout.json
+msgid "Software & Updates"
+msgstr "软件和更新"
+
+#: ext/ui/layout.json
+msgid "Source code, bug reports, and releases"
+msgstr "源代码、错误报告和版本"
+
+#: ext/ui/layout.json
+msgid "Stored at /var/cache/signage-videos"
+msgstr "存储在 /var/cache/signage-videos"
+
+#: ext/ui/layout.json
+msgid "Stretch (Ignore Aspect Ratio)"
+msgstr "拉伸（忽略纵横比）"
+
+#: ext/ui/layout.json
+msgid "Support continued maintenance and open-source development"
+msgstr "支持持续维护和开源开发"
+
+#: ext/ui/layout.json
+msgid "Sylepsign is up to date!"
+msgstr "Sylepsign 已更新！"
+
+#: ext/ui/layout.json
+msgid "System Dependencies"
+msgstr "系统依赖"
+
+#: ext/ui/layout.json
+msgid "Uncache"
+msgstr "取消缓存"
+
+#: ext/ui/layout.json
+msgid "Uncached"
+msgstr "未缓存"
+
+#: ext/ui/layout.json
+msgid "Update available: v{version}"
+msgstr "可用更新：v{version}"
+
+#: ext/ui/layout.json
+msgid "Update failed: {error}"
+msgstr "更新失败：{error}"
+
+#: ext/ui/layout.json
+msgid "Updating…"
+msgstr "正在更新…"
+
+#: ext/ui/layout.json
+msgid "Upgrade"
+msgstr "升级"
+
+#: ext/ui/layout.json
+msgid "Upgrade installed successfully. Please restart service or session."
+msgstr "升级安装成功。请重新启动服务或会话。"
+
+#: ext/ui/layout.json
+msgid "Upgraded!"
+msgstr "升级了！"
+
+#: ext/ui/layout.json
+msgid "User Session Lock Screen"
+msgstr "用户会话锁屏"
+
+#: ext/ui/layout.json
+msgid "Using stock operating system logo"
+msgstr "正在使用默认操作系统徽标"
+
+#: ext/ui/layout.json
+msgid "VA-API (Intel / AMD)"
+msgstr "VA-API（英特尔/AMD）"
+
+#: ext/ui/layout.json
+msgid "Version {version} ready to install."
+msgstr "版本 {version} 准备安装。"
+
+#: ext/ui/layout.json
+msgid "Video Output Driver (VO)"
+msgstr "视频输出驱动器 (VO)"
+
+#: ext/ui/layout.json
+msgid "Video Player Backend (mpv)"
+msgstr "视频播放器后端 (mpv)"
+
+#: ext/ui/layout.json
+msgid "Video Scaling & Fit"
+msgstr "视频缩放和适合"
+
+#: ext/ui/layout.json
+msgid "Video playback rate multiplier"
+msgstr "视频播放速率倍增器"
+
+#: ext/ui/layout.json
+msgid "View Repository"
+msgstr "查看存储库"
+
+#: ext/ui/layout.json
+msgid "Wayland Shared Memory (wlshm / VM Safe)"
+msgstr "Wayland 共享内存（wlshm / VM Safe）"
+
+#: ext/ui/layout.json
+msgid "mDNS Discovery Service (Avahi)"
+msgstr "mDNS 发现服务 (Avahi)"
+
+#: ext/ui/layout.json
+msgid "{count} video(s) available ({mb} MB indexed)"
+msgstr "{count} 个可用视频（{mb} MB 已索引）"
+

@@ -1,0 +1,529 @@
+# Sylepsign Video Signage Subsystem
+# Copyright (C) 2026 Alec Romano
+# This file is distributed under the same license as the Sylepsign package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sylepsign\n"
+"Report-Msgid-Bugs-To: alec@alecromano.com\n"
+"POT-Creation-Date: 2026-09-27 23:29+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ext/ui/layout.json
+msgid "0% fades completely invisible; 10-20% keeps subtle ambient login hints"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "0.5x (Slow Motion)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "0.75x (Relaxed)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "1.0x (Normal)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "1.25x (Brisk)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "1.5x (Fast)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "2.0x (Double Speed)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Active on port {port} (1 peer connected)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Active on port {port} ({peers} peers connected)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Adoption Trickle Interval"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Alphabetical"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Appearance"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Aspect ratio and frame scaling applied to displays"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Auto-detect"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Auto-detect (Optimal)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Available Upgrade"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Backdrop Shade & Tint"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Backdrop Shade Color"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Backdrop Tint Opacity"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Branding & Greeter Logo"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Buy me a bubble tea 🧋"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Bypass standard GNOME lock screen on idle/lock and activate video signage"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Cache Storage & Maintenance"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Change Logo…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Check Again"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Check for Updates"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Checking Avahi installation…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Checking mpv installation…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Checking…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Clearing…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Click \"Check for Updates\" to query GitHub"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Codec acceleration for video stream processing"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Color of the dark tint behind login controls to enhance legibility"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Cover (Crop & Fill)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Custom logo: {file}"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Disabled (Software CPU)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Display & Presentation"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Donate"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Download and install the latest release"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Enable Asset Mesh"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Fade Transition Duration"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Faded Minimum Opacity"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Failed"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Failed to connect to GitHub."
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Fill (Letterbox)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "GPU Acceleration (OpenGL / Vulkan)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "GitHub Repository"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Greeter Logo"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Hardware & Rendering Engine"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Hardware Video Decoding"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "How often this workstation adopts a new video from available network peers"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "How video playback is distributed across connected displays"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Idle Fade Animation"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Idle Inactivity Delay"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Image Files (*.png, *.svg, *.jpg, *.webp)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Inactivity Timeout"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Inhibit Display Power Sleep"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Install Release (sylepsign upgrade)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Installed Version"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Length of the fade animation transition (e.g. 800ms for smooth cinema)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Local media directory active"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Lock Screen"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Master System Activation"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Master System Signage"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Master toggle required for video signage playback and GDM login greeter"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Maximum Cached Videos"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Maximum number of adopted peer videos retained in local cache"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Media"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Mesh Download Cache"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Minutes of user absence before desktop locks and signage activates"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Mirror Video Across All Screens"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Multi-Monitor Presentation"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "NVDEC (NVIDIA)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Network Asset Mesh"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Network Discovery"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Opacity percentage of the backdrop tint (0 is clear, 100 is solid)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Order in which videos are queued and played"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Override the stock operating system logo on the login screen"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Play Different Video Per Screen"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Playback"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Playback Controls"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Playback Order"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Playback Speed"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Prevent monitors from entering DPMS sleep mode while video is playing"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Program"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Project & Community"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Query GitHub for newer releases and updates"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Querying daemon..."
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Random / Shuffle"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Release Status"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Removed {count} cached video(s)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Rendering backend for mpv compositor surface"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Replace User Lock Screen"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Restore Stock Logo"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Retry Upgrade"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Scanning for local peers via Avahi mDNS…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Seconds of inactivity before login UI fades to reveal full video"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Select Greeter Logo Image"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Sequential"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Share and trickle-sync video assets across local network peers"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Signage Video Pool"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Software & Updates"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Source code, bug reports, and releases"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Stored at /var/cache/signage-videos"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Stretch (Ignore Aspect Ratio)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Support continued maintenance and open-source development"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Sylepsign is up to date!"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "System Dependencies"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Uncache"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Uncached"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Update available: v{version}"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Update failed: {error}"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Updating…"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Upgrade"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Upgrade installed successfully. Please restart service or session."
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Upgraded!"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "User Session Lock Screen"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Using stock operating system logo"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "VA-API (Intel / AMD)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Version {version} ready to install."
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Video Output Driver (VO)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Video Player Backend (mpv)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Video Scaling & Fit"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Video playback rate multiplier"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "View Repository"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "Wayland Shared Memory (wlshm / VM Safe)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "mDNS Discovery Service (Avahi)"
+msgstr ""
+
+#: ext/ui/layout.json
+msgid "{count} video(s) available ({mb} MB indexed)"
+msgstr ""
+

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.sylepsign" path="/org/gnome/shell/extensions/sylepsign/">
+        <!-- Master & Scope Controls -->
+        <key name="enabled" type="b">
+            <default>true</default>
+            <summary>Master enable switch</summary>
+            <description>Master toggle to activate or deactivate the entire Sylepsign signage subsystem.</description>
+        </key>
+        <key name="enable-gdm-signage" type="b">
+            <default>true</default>
+            <summary>Enable on GDM greeter</summary>
+            <description>Whether video signage should play on the login/greeter screen when no user is logged in.</description>
+        </key>
+        <key name="enable-user-lockscreen" type="b">
+            <default>true</default>
+            <summary>Replace user lock screen</summary>
+            <description>Whether to bypass the standard user lock screen on idle/lock and redirect directly to the GDM signage greeter.</description>
+        </key>
+
+        <!-- Video Playback & Rendering -->
+        <key name="playback-order" type="s">
+            <default>'random'</default>
+            <summary>Playback order</summary>
+            <description>Order in which videos are queued and played ('random', 'sequential', 'alphabetical').</description>
+        </key>
+        <key name="playback-speed" type="d">
+            <default>1.0</default>
+            <range min="0.25" max="3.0"/>
+            <summary>Playback speed multiplier</summary>
+            <description>Multiplier for video playback rate (e.g. 0.5 for half speed, 1.0 for normal, 2.0 for double speed).</description>
+        </key>
+        <key name="hwdec-mode" type="s">
+            <default>'auto'</default>
+            <summary>Hardware decoding mode</summary>
+            <description>mpv hardware video decoding accelerator ('auto', 'no', 'vaapi', 'nvdec').</description>
+        </key>
+        <key name="vo-driver" type="s">
+            <default>'auto'</default>
+            <summary>Video output driver</summary>
+            <description>mpv video output driver ('auto', 'gpu', 'gpu-next', 'dmabuf-wayland', 'wlshm').</description>
+        </key>
+        <key name="multi-monitor-mode" type="s">
+            <default>'different'</default>
+            <summary>Multi-monitor display mode</summary>
+            <description>Multi-monitor video presentation mode ('different' to play a different video on each screen, 'mirror' to clone across all screens).</description>
+        </key>
+        <key name="video-fit" type="s">
+            <default>'cover'</default>
+            <summary>Video scaling and fit mode</summary>
+            <description>How videos fit on each screen ('cover' to fill and crop edges, 'fill' to letterbox, 'stretch' to ignore aspect ratio).</description>
+        </key>
+        <key name="inhibit-screen-sleep" type="b">
+            <default>true</default>
+            <summary>Inhibit screen sleep</summary>
+            <description>Prevent the display from sleeping via DPMS while video signage is playing.</description>
+        </key>
+
+        <!-- Greeter Visuals & Animations -->
+        <key name="chrome-fade-idle-seconds" type="i">
+            <default>30</default>
+            <range min="3" max="300"/>
+            <summary>Greeter chrome fade delay in seconds</summary>
+            <description>Seconds of inactivity in GDM greeter before login UI fades to reveal full video.</description>
+        </key>
+        <key name="chrome-fade-duration-ms" type="i">
+            <default>800</default>
+            <range min="100" max="3000"/>
+            <summary>Chrome fade animation duration</summary>
+            <description>Duration of the greeter UI fade animation in milliseconds.</description>
+        </key>
+        <key name="chrome-fade-min-opacity" type="i">
+            <default>0</default>
+            <range min="0" max="100"/>
+            <summary>Minimum opacity when idle faded</summary>
+            <description>Target opacity percentage for the login controls when idle faded (0 for invisible, or semi-translucent ambient).</description>
+        </key>
+        <key name="dim-alpha" type="i">
+            <default>50</default>
+            <range min="0" max="100"/>
+            <summary>Background dimming opacity</summary>
+            <description>Opacity percentage of the dark tint behind login controls (0 to 100).</description>
+        </key>
+        <key name="dim-color" type="s">
+            <default>'#000000'</default>
+            <summary>Backdrop tint shade color</summary>
+            <description>Hex color used for the backdrop tint behind login controls.</description>
+        </key>
+        <key name="greeter-logo-path" type="s">
+            <default>''</default>
+            <summary>Custom greeter logo path</summary>
+            <description>Path to the deployed system-wide greeter logo image.</description>
+        </key>
+
+        <!-- Timing & Inactivity -->
+        <key name="minutes-after-idle" type="i">
+            <default>5</default>
+            <range min="1" max="120"/>
+            <summary>Inactivity timeout in minutes</summary>
+            <description>Minutes of user inactivity before screen locks and video signage activates.</description>
+        </key>
+
+        <!-- Network Mesh & Peer Distribution -->
+        <key name="enable-http-server" type="b">
+            <default>true</default>
+            <summary>Enable HTTP asset server</summary>
+            <description>Toggle whether this machine serves its video pool to other workstations over HTTP/mDNS.</description>
+        </key>
+        <key name="http-port" type="i">
+            <default>8765</default>
+            <range min="1024" max="65535"/>
+            <summary>HTTP server port</summary>
+            <description>Port used by the embedded HTTP server to distribute signage assets.</description>
+        </key>
+        <key name="enable-mdns-publish" type="b">
+            <default>true</default>
+            <summary>Enable mDNS LAN announcement</summary>
+            <description>Whether to advertise this machine's pool service via Avahi mDNS on the LAN.</description>
+        </key>
+        <key name="enable-mesh" type="b">
+            <default>true</default>
+            <summary>Adopt assets from network peers</summary>
+            <description>Toggle whether this machine automatically discovers peers and adopts signage videos.</description>
+        </key>
+        <key name="trickle-interval-minutes" type="i">
+            <default>45</default>
+            <range min="1" max="1440"/>
+            <summary>Adoption trickle interval in minutes</summary>
+            <description>How often this machine pulls a new video asset from available network peers for adoption.</description>
+        </key>
+        <key name="max-cache" type="i">
+            <default>30</default>
+            <range min="1" max="200"/>
+            <summary>Maximum adopted videos in cache</summary>
+            <description>Maximum number of adopted videos retained in the local cache.</description>
+        </key>
+        <key name="bootstrap-min" type="i">
+            <default>8</default>
+            <range min="0" max="50"/>
+            <summary>Minimum videos to adopt on bootstrap</summary>
+            <description>Minimum video assets adopted on startup if the local collection is empty.</description>
+        </key>
+        <key name="connect-timeout-seconds" type="i">
+            <default>3</default>
+            <range min="1" max="30"/>
+            <summary>Peer connection timeout</summary>
+            <description>Timeout in seconds for peer catalog and probe HTTP requests.</description>
+        </key>
+    </schema>
+</schemalist>

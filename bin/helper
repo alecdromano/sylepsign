@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ACTION="${1:-check}"
+UUID="sylepsign@alecromano.com"
+GDM_DIR="/etc/dconf/db/gdm.d"
+PROFILE_DIR="/etc/dconf/profile"
+POOL_DIR="/var/lib/signage-pool"
+BRANDING_DIR="/usr/local/share/sylepsign/branding"
+
+ensure_profiles() {
+    mkdir -p "${PROFILE_DIR}"
+    for prof in gdm Debian-gdm; do
+        local pfile="${PROFILE_DIR}/${prof}"
+        if [ ! -f "${pfile}" ]; then
+            cat << 'EOF' > "${pfile}"
+user-db:user
+system-db:gdm
+file-db:/var/lib/gdm3/greeter-dconf-defaults
+EOF
+        elif ! grep -q "^system-db:gdm" "${pfile}" 2>/dev/null; then
+            echo "system-db:gdm" >> "${pfile}"
+        fi
+    done
+}
+
+sync_gdm() {
+    local enabled="${2:-true}"
+    local kv_pairs="${3:-}"
+    mkdir -p "${GDM_DIR}"
+    local conf_file="${GDM_DIR}/10-sylepsign"
+
+    cat << EOF > "${conf_file}"
+[org/gnome/shell]
+enabled-extensions=$( [ "${enabled}" = "true" ] && echo "['${UUID}']" || echo "@as []" )
+
+[org/gnome/shell/extensions/sylepsign]
+enable-gdm-signage=${enabled}
+EOF
+
+    if [ -n "${kv_pairs}" ]; then
+        IFS=';' read -ra pairs <<< "${kv_pairs}"
+        for pair in "${pairs[@]}"; do
+            if [[ "${pair}" =~ ^[a-zA-Z0-9_-]+=.+$ ]]; then
+                echo "${pair}" >> "${conf_file}"
+            fi
+        done
+    fi
+
+    local custom_logo=""
+    if [ -d "${BRANDING_DIR}" ]; then
+        custom_logo="$(find "${BRANDING_DIR}" -type f | head -n 1 || true)"
+    fi
+
+    if [ -n "${custom_logo}" ] && [ -f "${custom_logo}" ]; then
+        if ! grep -q "^greeter-logo-path=" "${conf_file}" 2>/dev/null; then
+            echo "greeter-logo-path='${custom_logo}'" >> "${conf_file}"
+        fi
+        cat << EOF >> "${conf_file}"
+
+[org/gnome/login-screen]
+logo='${custom_logo}'
+EOF
+    fi
+
+    chmod 0644 "${conf_file}"
+    ensure_profiles
+    if command -v dconf >/dev/null 2>&1; then
+        dconf update
+    fi
+    echo "SYNC_OK"
+}
+
+add_to_pool() {
+    mkdir -p "${POOL_DIR}"
+    shift
+    local count=0
+    for src in "$@"; do
+        if [ -f "${src}" ]; then
+            local dest="${POOL_DIR}/$(basename "${src}")"
+            cp -f "${src}" "${dest}"
+            chmod 0666 "${dest}"
+            count=$((count + 1))
+        fi
+    done
+    echo "ADD_POOL_OK:${count}"
+}
+
+remove_from_pool() {
+    shift
+    local count=0
+    for target in "$@"; do
+        local base="$(basename "${target}")"
+        local full="${POOL_DIR}/${base}"
+        if [ -f "${full}" ]; then
+            rm -f "${full}"
+            count=$((count + 1))
+        fi
+    done
+    echo "REMOVE_POOL_OK:${count}"
+}
+
+install_mpv() {
+    if command -v apt-get >/dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq || true
+        apt-get install -y --no-install-recommends mpv
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y --setopt=install_weak_deps=False mpv
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Sy --noconfirm mpv
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper --non-interactive in --no-recommends mpv
+    else
+        echo "ERROR: Unsupported package manager. Please install mpv manually." >&2
+        exit 1
+    fi
+    echo "INSTALL_MPV_OK"
+}
+
+install_avahi() {
+    if command -v apt-get >/dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq || true
+        apt-get install -y --no-install-recommends avahi-daemon avahi-utils
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y --setopt=install_weak_deps=False avahi avahi-tools
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Sy --noconfirm avahi
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper --non-interactive in --no-recommends avahi avahi-utils
+    else
+        echo "ERROR: Unsupported package manager. Please install avahi manually." >&2
+        exit 1
+    fi
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl enable --now avahi-daemon || true
+    fi
+    echo "INSTALL_AVAHI_OK"
+}
+
+set_logo() {
+    local src="${2:-}"
+    if [ -z "${src}" ] || [ ! -f "${src}" ]; then
+        echo "ERROR: Source image file not found: ${src}" >&2
+        exit 1
+    fi
+
+    mkdir -p "${BRANDING_DIR}"
+    chmod 0755 "${BRANDING_DIR}"
+    rm -f "${BRANDING_DIR}"/*
+
+    local base
+    base="$(basename "${src}")"
+    local dest="${BRANDING_DIR}/${base}"
+
+    cp -f "${src}" "${dest}"
+    chmod 0644 "${dest}"
+
+    local enabled="true"
+    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
+        if grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
+            enabled="false"
+        fi
+    fi
+
+    local kv_pairs=""
+    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
+        kv_pairs=$(grep -E '^[a-zA-Z0-9_-]+=.+$' "${GDM_DIR}/10-sylepsign" | grep -v 'enable-gdm-signage=' | grep -v 'greeter-logo-path=' | tr '\n' ';' || true)
+    fi
+    kv_pairs="${kv_pairs}greeter-logo-path='${dest}'"
+
+    sync_gdm "sync-gdm" "${enabled}" "${kv_pairs}" >/dev/null
+    echo "SET_LOGO_OK:${dest}"
+}
+
+reset_logo() {
+    if [ -d "${BRANDING_DIR}" ]; then
+        rm -f "${BRANDING_DIR}"/*
+    fi
+
+    local enabled="true"
+    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
+        if grep -q "enable-gdm-signage=false" "${GDM_DIR}/10-sylepsign" 2>/dev/null; then
+            enabled="false"
+        fi
+    fi
+
+    local kv_pairs=""
+    if [ -f "${GDM_DIR}/10-sylepsign" ]; then
+        kv_pairs=$(grep -E '^[a-zA-Z0-9_-]+=.+$' "${GDM_DIR}/10-sylepsign" | grep -v 'enable-gdm-signage=' | grep -v 'greeter-logo-path=' | tr '\n' ';' || true)
+    fi
+
+    sync_gdm "sync-gdm" "${enabled}" "${kv_pairs}" >/dev/null
+    echo "RESET_LOGO_OK"
+}
+
+case "${ACTION}" in
+    check)
+        echo "AUTH_OK"
+        exit 0
+        ;;
+    sync-gdm)
+        sync_gdm "$@"
+        exit 0
+        ;;
+    add-to-pool)
+        add_to_pool "$@"
+        exit 0
+        ;;
+    remove-from-pool)
+        remove_from_pool "$@"
+        exit 0
+        ;;
+    set-logo)
+        set_logo "$@"
+        exit 0
+        ;;
+    reset-logo)
+        reset_logo
+        exit 0
+        ;;
+    install-mpv)
+        install_mpv
+        exit 0
+        ;;
+    install-avahi)
+        install_avahi
+        exit 0
+        ;;
+    *)
+        echo "Unknown action: ${ACTION}" >&2
+        exit 1
+        ;;
+esac

@@ -1,0 +1,12 @@
+{
+    "name": "Sylepsign - Video Signage Subsystem",
+    "description": "Video signage player, idle monitor, and greeter injection subsystem for GNOME Shell.",
+    "uuid": "sylepsign@alecromano.com",
+    "author": "alec@alecromano.com",
+    "url": "https://github.com/alecdromano/sylepsign",
+    "settings-schema": "org.gnome.shell.extensions.sylepsign",
+    "gettext-domain": "sylepsign@alecromano.com",
+    "session-modes": ["user", "unlock-dialog", "gdm"],
+    "shell-version": ["46", "47", "48", "49", "50", "51"],
+    "version-name": "0.2.7 Beta"
+}

@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEST="org.sylepsign.Daemon"
+PATH_OBJ="/org/sylepsign/Daemon"
+IFACE="org.sylepsign.Daemon"
+UUID="sylepsign@alecromano.com"
+
+EXT_INSTALL_DIR="/usr/local/share/gnome-shell/extensions/${UUID}"
+SCHEMA_DIR="/usr/share/glib-2.0/schemas"
+BIN_DIR="/usr/local/bin"
+DBUS_POLICY_DIR="/usr/share/dbus-1/system.d"
+SYSTEMD_DIR="/etc/systemd/system"
+POOL_DIR="/var/lib/signage-pool"
+CACHE_DIR="/var/cache/signage-videos"
+SHARE_DIR="/usr/local/share/sylepsign"
+POLKIT_DIR="/usr/share/polkit-1/actions"
+
+call_dbus() {
+    local method="$1"
+    shift
+    if gdbus call --system --dest "${DEST}" --object-path "${PATH_OBJ}" --method "${IFACE}.${method}" "$@" 2>/dev/null; then
+        return 0
+    else
+        gdbus call --session --dest "${DEST}" --object-path "${PATH_OBJ}" --method "${IFACE}.${method}" "$@" 2>/dev/null || {
+            echo "ERROR: Sylepsign daemon is not responding on D-Bus. Is sylepsign.service active?" >&2
+            return 1
+        }
+    fi
+}
+
+dbus_query() {
+    [ -n "$1" ] && echo "$1"
+    call_dbus "$2" | sed -E "s/^\('(.*)',\)$/\1/" | sed 's/\\"/"/g'
+}
+
+cmd_status() { dbus_query "=== Sylepsign Status ===" "GetStatus"; }
+cmd_videos() { dbus_query "=== Available Videos ===" "ListVideos"; }
+cmd_update() { dbus_query "Checking GitHub for updates..." "Update"; }
+cmd_upgrade() { dbus_query "Initiating Sylepsign upgrade from GitHub..." "Upgrade"; }
+cmd_uncache() { dbus_query "Clearing downloaded video cache..." "Uncache"; }
+
+cmd_restart() {
+    echo "Restarting Sylepsign service..."
+    command -v systemctl >/dev/null 2>&1 && { sudo systemctl restart sylepsign.service; echo "Service restarted."; } || echo "systemctl not found." >&2
+}
+
+ensure_dconf_profiles() {
+    mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
+    for prof in gdm Debian-gdm; do
+        local pfile="/etc/dconf/profile/${prof}"
+        if [ ! -f "${pfile}" ]; then
+            printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
+        elif ! grep -q "^system-db:gdm" "${pfile}" 2>/dev/null; then
+            echo "system-db:gdm" >> "${pfile}"
+        fi
+    done
+
+    local uprofile="/etc/dconf/profile/user"
+    if [ ! -f "${uprofile}" ]; then
+        printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
+    elif ! grep -q "^system-db:local" "${uprofile}" 2>/dev/null; then
+        echo "system-db:local" >> "${uprofile}"
+    fi
+}
+
+manage_dconf() {
+    local state="${1:-enable}"
+    local ext_list="$([ "${state}" = "enable" ] && echo "['${UUID}']" || echo "@as []")"
+    local bool_val="$([ "${state}" = "enable" ] && echo "true" || echo "false")"
+    ensure_dconf_profiles
+    printf "[org/gnome/shell]\nenabled-extensions=%s\n\n[org/gnome/shell/extensions/sylepsign]\nenable-gdm-signage=%s\n" \
+        "${ext_list}" "${bool_val}" > /etc/dconf/db/gdm.d/10-sylepsign
+    local custom_logo=""
+    if [ -d "${SHARE_DIR}/branding" ]; then
+        custom_logo="$(find "${SHARE_DIR}/branding" -type f | head -n 1 || true)"
+    fi
+    if [ -n "${custom_logo}" ] && [ -f "${custom_logo}" ]; then
+        printf "greeter-logo-path='%s'\n\n[org/gnome/login-screen]\nlogo='%s'\n" \
+            "${custom_logo}" "${custom_logo}" >> /etc/dconf/db/gdm.d/10-sylepsign
+    fi
+    printf "[org/gnome/shell]\nenabled-extensions=%s\n" "${ext_list}" > /etc/dconf/db/local.d/10-sylepsign
+    command -v dconf >/dev/null 2>&1 && dconf update || true
+}
+
+manage_sessions() {
+    local action="${1:-enable}"
+    echo "${action^}ing extension for active desktop sessions..."
+    local uids
+    uids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | sort -u || true)
+    for uid in $uids; do
+        if [ "$uid" -ge 1000 ] 2>/dev/null; then
+            local uuser
+            uuser=$(id -nu "$uid" 2>/dev/null || true)
+            if [ -n "$uuser" ] && [ -d "/run/user/${uid}" ]; then
+                sudo -u "$uuser" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+            fi
+        fi
+    done
+
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        local suid
+        suid=$(id -u "${SUDO_USER}" 2>/dev/null || true)
+        if [ -n "${suid}" ] && [ -d "/run/user/${suid}" ]; then
+            sudo -u "${SUDO_USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${suid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+        fi
+    fi
+}
+
+cmd_set_state() {
+    local action="$1"
+    local bool_val="$([ "${action}" = "enable" ] && echo "true" || echo "false")"
+    echo "${action^}ing Sylepsign..."
+
+    if [ "$(id -u)" -ne 0 ]; then
+        command -v gnome-extensions >/dev/null 2>&1 && gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set org.gnome.shell.extensions.sylepsign enabled "${bool_val}" 2>/dev/null || true
+            gsettings set org.gnome.shell.extensions.sylepsign enable-gdm-signage "${bool_val}" 2>/dev/null || true
+        fi
+        echo "Root privileges required to update system-wide services and GDM greeter. Re-running with sudo..."
+        exec sudo bash "$0" "${action}" "$@"
+    fi
+
+    manage_dconf "${action}"
+    manage_sessions "${action}"
+
+    if command -v systemctl >/dev/null 2>&1; then
+        [ "${action}" = "enable" ] && systemctl enable --now sylepsign.service 2>/dev/null || systemctl disable --now sylepsign.service 2>/dev/null || true
+    fi
+    echo "Sylepsign ${action}d."
+}
+
+cmd_uninstall() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "Root privileges required for uninstallation. Re-running with sudo..."
+        exec sudo bash "$0" uninstall "$@"
+    fi
+
+    echo "Uninstalling Sylepsign..."
+    manage_sessions "disable"
+
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl disable --now sylepsign.service 2>/dev/null || true
+        systemctl stop sylepsign.service 2>/dev/null || true
+    fi
+
+    rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf"
+    rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}" /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
+    rm -f "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
+          /etc/dconf/db/gdm.d/10-sylepsign /etc/dconf/db/local.d/10-sylepsign \
+          "${POLKIT_DIR}/org.sylepsign.policy"
+
+    command -v dconf >/dev/null 2>&1 && dconf update 2>/dev/null || true
+    command -v glib-compile-schemas >/dev/null 2>&1 && glib-compile-schemas "${SCHEMA_DIR}" 2>/dev/null || true
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl reload dbus 2>/dev/null || true
+        systemctl daemon-reload 2>/dev/null || true
+    fi
+
+    rm -f "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
+    echo "Sylepsign has been completely uninstalled."
+}
+
+cmd_logo() {
+    local target="${1:-}"
+    local helper="${SHARE_DIR}/helper"
+    [ ! -x "${helper}" ] && helper="/usr/local/bin/helper"
+
+    if [ "${target}" = "--reset" ] || [ "${target}" = "reset" ]; then
+        echo "Restoring stock distribution logo for GDM..."
+        if [ "$(id -u)" -ne 0 ]; then
+            pkexec "${helper}" reset-logo
+        else
+            "${helper}" reset-logo
+        fi
+        command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.shell.extensions.sylepsign greeter-logo-path "" 2>/dev/null || true
+        echo "Stock distribution logo restored."
+    elif [ -n "${target}" ]; then
+        [ ! -f "${target}" ] && { echo "ERROR: File not found: ${target}" >&2; exit 1; }
+        local abs_target
+        abs_target="$(cd "$(dirname "${target}")" && pwd)/$(basename "${target}")"
+        local res
+        if [ "$(id -u)" -ne 0 ]; then
+            res=$(pkexec "${helper}" set-logo "${abs_target}")
+        else
+            res=$("${helper}" set-logo "${abs_target}")
+        fi
+        local dest
+        dest=$(echo "${res}" | grep "SET_LOGO_OK:" | cut -d':' -f2 || true)
+        [ -n "${dest}" ] && command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.shell.extensions.sylepsign greeter-logo-path "${dest}" 2>/dev/null || true
+        echo "Custom greeter logo installed: ${dest}"
+    else
+        local cur=""
+        command -v gsettings >/dev/null 2>&1 && cur=$(gsettings get org.gnome.shell.extensions.sylepsign greeter-logo-path 2>/dev/null | tr -d "'" || true)
+        [ -n "${cur}" ] && [ -f "${cur}" ] && echo "Custom greeter logo: ${cur}" || echo "Stock distribution logo (no override)"
+    fi
+}
+
+cmd_version() {
+    local dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for f in "${EXT_INSTALL_DIR}/metadata.json" "${dir}/../ext/metadata.json"; do
+        [ -f "${f}" ] && sed -n 's/.*"version-name": *"\([^"]*\)".*/\1/p' "${f}" && return 0
+    done
+    echo "unknown"
+}
+
+cmd_help() {
+    cat << 'EOF'
+Usage: sylepsign <command> [options]
+
+Commands:
+    version     Show installed Sylepsign version
+    status      Show current daemon and playback status
+    videos      List indexed media pool videos
+    logo        Set custom logo (sylepsign logo <path>) or reset (sylepsign logo --reset)
+    enable      Enable Sylepsign system service, GDM greeter, and session extension
+    disable     Disable Sylepsign system service, GDM greeter, and session extension
+    update      Check if a new release is available on GitHub
+    upgrade     Download and apply the latest release
+    uncache     Clear cached videos downloaded over mesh
+    restart     Restart the systemd background daemon
+    uninstall   Completely uninstall Sylepsign from the system
+    help        Show this help message
+EOF
+}
+
+ACTION="${1:-help}"
+case "${ACTION}" in
+    version|--version|-v) cmd_version ;;
+    status) cmd_status ;;
+    videos) cmd_videos ;;
+    logo) shift; cmd_logo "$@" ;;
+    enable) cmd_set_state "enable" ;;
+    disable) cmd_set_state "disable" ;;
+    update|check-update) cmd_update ;;
+    upgrade) cmd_upgrade ;;
+    uncache|clear-cache) cmd_uncache ;;
+    restart) cmd_restart ;;
+    uninstall|--uninstall) cmd_uninstall ;;
+    help|--help|-h) cmd_help ;;
+    *)
+        echo "Unknown command: ${ACTION}" >&2
+        cmd_help
+        exit 1
+        ;;
+esac
+
