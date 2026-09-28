@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 UUID="sylepsign@alecromano.com"
+ACTION="${1:---install}"
 
 EXT_INSTALL_DIR="/usr/local/share/gnome-shell/extensions/${UUID}"
 SCHEMA_DIR="/usr/share/glib-2.0/schemas"
@@ -15,10 +19,23 @@ SHARE_DIR="/usr/local/share/sylepsign"
 DAEMON_SHARE_DIR="${SHARE_DIR}/daemon"
 POLKIT_DIR="/usr/share/polkit-1/actions"
 
+CLEANUP_TEMP_DIR=""
+cleanup() {
+    if [ -n "${CLEANUP_TEMP_DIR:-}" ] && [ -d "${CLEANUP_TEMP_DIR}" ]; then
+        rm -rf "${CLEANUP_TEMP_DIR}"
+    fi
+}
+trap cleanup EXIT
+
 require_root() {
     if [ "$(id -u)" -ne 0 ]; then
-        echo "Root privileges required. Re-running with sudo..."
-        exec sudo bash "$0" "$@"
+        if [ -n "${SCRIPT_DIR}" ]; then
+            echo "Root privileges required. Re-running with sudo..."
+            exec sudo bash "${SCRIPT_DIR}/install.sh" "$@"
+        else
+            echo "Root privileges required. Please re-run with sudo (e.g. curl ... | sudo bash)." >&2
+            exit 1
+        fi
     fi
 }
 
@@ -50,22 +67,20 @@ install_dependencies() {
         debian)
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq || true
-            apt-get install -y --no-install-recommends mpv avahi-daemon avahi-utils gjs libglib2.0-bin curl git jq gettext gnome-shell-extension-manager 2>/dev/null || \
             apt-get install -y --no-install-recommends mpv avahi-daemon avahi-utils gjs libglib2.0-bin curl git jq gettext
+            apt-get install -y --no-install-recommends gnome-shell-extension-manager 2>/dev/null || true
             ;;
         fedora)
-            dnf install -y --setopt=install_weak_deps=False mpv avahi avahi-tools gjs glib2 curl git jq gettext gnome-shell-extension-manager 2>/dev/null || \
-            dnf install -y --setopt=install_weak_deps=False mpv avahi avahi-tools gjs glib2 curl git jq gettext extension-manager 2>/dev/null || \
             dnf install -y --setopt=install_weak_deps=False mpv avahi avahi-tools gjs glib2 curl git jq gettext
+            dnf install -y --setopt=install_weak_deps=False gnome-shell-extension-manager 2>/dev/null || true
             ;;
         arch)
-            pacman -Sy --noconfirm --needed mpv avahi gjs glib2 curl git jq gettext gnome-shell-extension-manager 2>/dev/null || \
-            pacman -S --noconfirm --needed mpv avahi gjs glib2 curl git jq gettext
+            pacman -Sy --noconfirm --needed mpv avahi gjs glib2 curl git jq gettext
+            pacman -S --noconfirm --needed gnome-shell-extension-manager 2>/dev/null || true
             ;;
         suse)
-            zypper --non-interactive install --no-recommends mpv avahi gjs glib2-tools curl git jq gettext-tools gnome-shell-extension-manager 2>/dev/null || \
-            zypper --non-interactive install --no-recommends mpv avahi gjs glib2-tools curl git jq gettext-tools 2>/dev/null || \
-            zypper --non-interactive install --no-recommends mpv avahi gjs glib2-tools curl git jq gettext-runtime
+            zypper --non-interactive install --no-recommends mpv avahi gjs glib2-tools curl git jq gettext-tools
+            zypper --non-interactive install --no-recommends gnome-shell-extension-manager 2>/dev/null || true
             ;;
         *)
             echo "Warning: Unrecognized package manager. Ensure mpv, avahi, gjs, glib2, jq, and gettext are installed." >&2
@@ -75,13 +90,14 @@ install_dependencies() {
 }
 
 bootstrap_source() {
-    if [ ! -d "${SCRIPT_DIR}/daemon" ] || [ ! -d "${SCRIPT_DIR}/ext" ]; then
+    if [ -z "${SCRIPT_DIR}" ] || [ ! -d "${SCRIPT_DIR}/daemon" ] || [ ! -d "${SCRIPT_DIR}/ext" ]; then
         echo "Sylepsign source files not found locally. Fetching repository from GitHub..."
-        local temp_src
-        temp_src=$(mktemp -d -t sylepsign-src-XXXXXX)
-        trap 'rm -rf "${temp_src}"' EXIT
-        git clone --depth 1 https://github.com/alecdromano/sylepsign.git "${temp_src}"
-        SCRIPT_DIR="${temp_src}"
+        CLEANUP_TEMP_DIR="$(mktemp -d -t sylepsign-src-XXXXXX)"
+        git clone --depth 1 https://github.com/alecdromano/sylepsign.git "${CLEANUP_TEMP_DIR}"
+        SCRIPT_DIR="${CLEANUP_TEMP_DIR}"
+    elif [ "${ACTION}" = "--update" ] && [ -d "${SCRIPT_DIR}/.git" ]; then
+        echo "Updating local repository..."
+        git -C "${SCRIPT_DIR}" pull --ff-only 2>/dev/null || true
     fi
 }
 
@@ -148,31 +164,17 @@ configure_dconf() {
     echo "Configuring system dconf databases (GDM and desktop sessions)..."
     mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
 
-    cat << EOF > /etc/dconf/db/gdm.d/10-sylepsign
-[org/gnome/shell]
-enabled-extensions=['${UUID}']
-EOF
+    printf "[org/gnome/shell]\nenabled-extensions=['${UUID}']\n" | tee /etc/dconf/db/gdm.d/10-sylepsign > /etc/dconf/db/local.d/10-sylepsign
 
     for prof in gdm Debian-gdm; do
         local pfile="/etc/dconf/profile/${prof}"
-        if [ ! -f "${pfile}" ]; then
-            printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
-        elif ! grep -q "^system-db:gdm" "${pfile}" 2>/dev/null; then
-            echo "system-db:gdm" >> "${pfile}"
-        fi
+        [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
+        grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
     done
 
-    cat << EOF > /etc/dconf/db/local.d/10-sylepsign
-[org/gnome/shell]
-enabled-extensions=['${UUID}']
-EOF
-
     local uprofile="/etc/dconf/profile/user"
-    if [ ! -f "${uprofile}" ]; then
-        printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
-    elif ! grep -q "^system-db:local" "${uprofile}" 2>/dev/null; then
-        echo "system-db:local" >> "${uprofile}"
-    fi
+    [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
+    grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
 
     dconf update || true
 }
@@ -206,21 +208,18 @@ uninstall() {
     manage_sessions disable
     systemctl disable --now sylepsign.service 2>/dev/null || true
     systemctl stop sylepsign.service 2>/dev/null || true
-    rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf"
-    rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}"
-    rm -f "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
+    rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf" \
+          "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
           /etc/dconf/db/gdm.d/10-sylepsign /etc/dconf/db/local.d/10-sylepsign \
-          "${POLKIT_DIR}/org.sylepsign.policy"
-    rm -rf /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
+          "${POLKIT_DIR}/org.sylepsign.policy" "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
+    rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}" /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
     dconf update || true
     glib-compile-schemas "${SCHEMA_DIR}" || true
     systemctl reload dbus 2>/dev/null || true
     systemctl daemon-reload
-    rm -f "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
     echo "Sylepsign uninstalled."
 }
 
-ACTION="${1:---install}"
 require_root
 
 case "${ACTION}" in

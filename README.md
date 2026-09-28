@@ -32,10 +32,16 @@ Sylepsign supports GNOME Shell 46 through 51 on Ubuntu, Debian, Fedora, Arch Lin
 
 ### One-Line Install
 
-Run the automated installer:
+Run the automated installer with `curl` or `wget`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alecdromano/sylepsign/main/install.sh | sudo bash
+```
+
+Or using `wget`:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/alecdromano/sylepsign/main/install.sh | sudo bash
 ```
 
 Alternatively, clone the repository and run the installer:

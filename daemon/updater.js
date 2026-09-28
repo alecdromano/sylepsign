@@ -35,31 +35,64 @@ export class UpdateManager {
         return 'unknown';
     }
 
-    checkForUpdate(callback) {
-        const url = `https://api.github.com/repos/${this.repo}/releases/latest`;
+    fetchUrl(url, callback) {
         const msg = Soup.Message.new('GET', url);
         msg.get_request_headers().append('User-Agent', 'Sylepsign-Updater');
-
         this.session.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, (s, res) => {
             try {
                 const bytes = s.send_and_read_finish(res);
-                if (msg.get_status() === 200 && bytes) {
-                    const text = new TextDecoder().decode(bytes.get_data());
+                const status = msg.get_status();
+                const text = bytes ? new TextDecoder().decode(bytes.get_data()) : '';
+                callback(status, text);
+            } catch (_e) {
+                callback(0, null);
+            }
+        });
+    }
+
+    checkForUpdate(callback) {
+        this.fetchUrl(`https://api.github.com/repos/${this.repo}/releases/latest`, (status, text) => {
+            if (status === 200 && text) {
+                try {
                     const data = JSON.parse(text);
                     const latestVersion = (data.tag_name || '').replace(/^v/, '');
-                    const updateAvailable = this.compareVersions(this.currentVersion, latestVersion) < 0;
-
                     callback({
-                        available: updateAvailable,
+                        available: this.compareVersions(this.currentVersion, latestVersion) < 0,
                         currentVersion: this.currentVersion,
                         latestVersion: latestVersion || this.currentVersion,
                         url: data.html_url || `https://github.com/${this.repo}`,
                         notes: data.body || '',
                     });
                     return;
-                }
-            } catch (e) {
-                // network or parse error
+                } catch (_e) {}
+            }
+
+            if (status === 404) {
+                this.fetchUrl(`https://api.github.com/repos/${this.repo}/tags`, (tStatus, tText) => {
+                    if (tStatus === 200 && tText) {
+                        try {
+                            const tags = JSON.parse(tText);
+                            if (Array.isArray(tags) && tags.length > 0) {
+                                const latestTag = (tags[0].name || '').replace(/^v/, '');
+                                callback({
+                                    available: this.compareVersions(this.currentVersion, latestTag) < 0,
+                                    currentVersion: this.currentVersion,
+                                    latestVersion: latestTag || this.currentVersion,
+                                    url: `https://github.com/${this.repo}`,
+                                    notes: '',
+                                });
+                                return;
+                            }
+                        } catch (_e) {}
+                    }
+                    callback({
+                        available: false,
+                        currentVersion: this.currentVersion,
+                        latestVersion: this.currentVersion,
+                        error: 'No releases found on GitHub',
+                    });
+                });
+                return;
             }
 
             callback({
