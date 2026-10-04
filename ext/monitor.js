@@ -13,6 +13,8 @@ export class Monitor {
         this.idleWatchId = 0;
         this.userActiveWatchId = 0;
         this.lockedChangedId = 0;
+        this.sessionSettingsChangedId = 0;
+        this.sessionSettings = null;
         this.switchInFlight = false;
         this.coreMonitor = null;
     }
@@ -21,6 +23,15 @@ export class Monitor {
         if (Main.sessionMode?.isGreeter) {
             this.player?.start();
             return;
+        }
+
+        try {
+            this.sessionSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.session' });
+            this.sessionSettingsChangedId = this.sessionSettings.connect('changed::idle-delay', () => {
+                this.rearmIdleWatch();
+            });
+        } catch (_e) {
+            this.sessionSettings = null;
         }
 
         this.coreMonitor = global.backend?.get_core_idle_monitor?.() || null;
@@ -41,6 +52,12 @@ export class Monitor {
     }
 
     disable() {
+        if (this.sessionSettings && this.sessionSettingsChangedId) {
+            try { this.sessionSettings.disconnect(this.sessionSettingsChangedId); } catch (_e) {}
+            this.sessionSettingsChangedId = 0;
+        }
+        this.sessionSettings = null;
+
         if (this.coreMonitor) {
             if (this.idleWatchId) {
                 try { this.coreMonitor.remove_watch(this.idleWatchId); } catch (e) {}
@@ -61,11 +78,31 @@ export class Monitor {
         this.switchInFlight = false;
     }
 
+    rearmIdleWatch() {
+        if (this.coreMonitor && this.idleWatchId) {
+            try { this.coreMonitor.remove_watch(this.idleWatchId); } catch (e) {}
+            this.idleWatchId = 0;
+        }
+        this.armIdleWatch();
+    }
+
     armIdleWatch() {
         if (!this.coreMonitor || this.idleWatchId) return;
 
-        const minutes = this.cfg.idle_minutes || 5;
-        const idleMs = Math.max(1000, minutes * 60 * 1000);
+        let idleMs = 0;
+        if (this.sessionSettings) {
+            try {
+                const sessionDelaySec = this.sessionSettings.get_uint('idle-delay');
+                if (sessionDelaySec > 0) {
+                    idleMs = sessionDelaySec * 1000;
+                }
+            } catch (_e) {}
+        }
+
+        if (!idleMs) {
+            const minutes = this.cfg.idle_minutes || 5;
+            idleMs = Math.max(1000, minutes * 60 * 1000);
+        }
 
         try {
             this.idleWatchId = this.coreMonitor.add_idle_watch(idleMs, (_m, id) => {
