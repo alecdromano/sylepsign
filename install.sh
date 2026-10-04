@@ -21,7 +21,9 @@ POLKIT_DIR="/usr/share/polkit-1/actions"
 
 CLEANUP_TEMP_DIR=""
 cleanup() {
-    [ -n "${CLEANUP_TEMP_DIR:-}" ] && [ -d "${CLEANUP_TEMP_DIR}" ] && rm -rf "${CLEANUP_TEMP_DIR}"
+    if [ -n "${CLEANUP_TEMP_DIR:-}" ] && [ -d "${CLEANUP_TEMP_DIR}" ]; then
+        rm -rf "${CLEANUP_TEMP_DIR}"
+    fi
 }
 trap cleanup EXIT
 
