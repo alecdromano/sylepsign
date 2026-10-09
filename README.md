@@ -2,7 +2,7 @@
 
 A hardware-accelerated video signage subsystem, idle monitor, and peer-to-peer asset distribution mesh for GNOME Shell and the GDM greeter.
 
-![Sylepsign Preview](docs/cover.webp)
+![Sylepsign Example Use Case](docs/cover.webp)
 
 ---
 
@@ -23,6 +23,8 @@ Operating natively within GNOME Shell under Wayland, Sylepsign displays hardware
 * **Decentralized Peer-to-Peer Mesh**: Discovers local signage nodes via Avahi mDNS and synchronizes media pools over the local network without requiring a centralized server.
 * **Libadwaita Preferences**: A modern GNOME settings interface to configure playback, visuals, media pools, and greeter branding.
 * **CLI Management Tool**: Inspect service health, manage video assets, set custom greeter logos, and trigger updates from the terminal.
+
+![Sylepsign Preview](docs/greeter.webp)
 
 ---
 
