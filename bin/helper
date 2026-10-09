@@ -36,7 +36,12 @@ enabled-extensions=$( [ "${enabled}" = "true" ] && echo "['${UUID}']" || echo "@
 
 [org/gnome/shell/extensions/sylepsign]
 enable-gdm-signage=${enabled}
+enabled=${enabled}
 EOF
+    if [ "${enabled}" != "true" ]; then
+        pkill -9 -f "title=fleet-signage" 2>/dev/null || true
+        pkill -9 -f "signage-pool" 2>/dev/null || true
+    fi
 
     if [ -n "${kv_pairs}" ]; then
         IFS=';' read -ra pairs <<< "${kv_pairs}"

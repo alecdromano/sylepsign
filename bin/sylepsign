@@ -15,17 +15,32 @@ CACHE_DIR="/var/cache/signage-videos"
 SHARE_DIR="/usr/local/share/sylepsign"
 POLKIT_DIR="/usr/share/polkit-1/actions"
 
+SESSION_SCRIPT="${SHARE_DIR}/session"
+if [ ! -f "${SESSION_SCRIPT}" ]; then
+    SESSION_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/session"
+fi
+# shellcheck source=/dev/null
+source "${SESSION_SCRIPT}"
+
+require_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        if [ -t 0 ] || [ -n "${SUDO_ASKPASS:-}" ]; then
+            exec sudo -- "$0" "$@"
+        fi
+        echo "ERROR: Root privileges required. Please re-run with sudo." >&2
+        exit 1
+    fi
+}
+
 call_dbus() {
-    local method="$1"
-    shift
+    local method="$1"; shift
     if gdbus call --system --dest "${DEST}" --object-path "${PATH_OBJ}" --method "${IFACE}.${method}" "$@" 2>/dev/null; then
         return 0
-    else
-        gdbus call --session --dest "${DEST}" --object-path "${PATH_OBJ}" --method "${IFACE}.${method}" "$@" 2>/dev/null || {
-            echo "ERROR: Sylepsign daemon is not responding on D-Bus. Is sylepsign.service active?" >&2
-            return 1
-        }
     fi
+    gdbus call --session --dest "${DEST}" --object-path "${PATH_OBJ}" --method "${IFACE}.${method}" "$@" 2>/dev/null || {
+        echo "ERROR: Sylepsign daemon is not responding on D-Bus. Is sylepsign.service active?" >&2
+        return 1
+    }
 }
 
 dbus_query() {
@@ -35,100 +50,23 @@ dbus_query() {
 
 cmd_status() { dbus_query "=== Sylepsign Status ===" "GetStatus"; }
 cmd_videos() { dbus_query "=== Available Videos ===" "ListVideos"; }
-cmd_update() { dbus_query "Checking GitHub for updates..." "Update"; }
-cmd_upgrade() { dbus_query "Initiating Sylepsign upgrade from GitHub..." "Upgrade"; }
 cmd_uncache() { dbus_query "Clearing downloaded video cache..." "Uncache"; }
 
 cmd_restart() {
+    require_root "$@"
     echo "Restarting Sylepsign service..."
-    command -v systemctl >/dev/null 2>&1 && { sudo systemctl restart sylepsign.service; echo "Service restarted."; } || echo "systemctl not found." >&2
-}
-
-ensure_dconf_profiles() {
-    mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
-    for prof in gdm Debian-gdm; do
-        local pfile="/etc/dconf/profile/${prof}"
-        [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
-        grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
-    done
-    local uprofile="/etc/dconf/profile/user"
-    [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
-    grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
-}
-
-manage_dconf() {
-    local state="${1:-enable}"
-    local ext_list="$([ "${state}" = "enable" ] && echo "['${UUID}']" || echo "@as []")"
-    local bool_val="$([ "${state}" = "enable" ] && echo "true" || echo "false")"
-    ensure_dconf_profiles
-    printf "[org/gnome/shell]\nenabled-extensions=%s\n\n[org/gnome/shell/extensions/sylepsign]\nenable-gdm-signage=%s\n" \
-        "${ext_list}" "${bool_val}" > /etc/dconf/db/gdm.d/10-sylepsign
-    local custom_logo=""
-    if [ -d "${SHARE_DIR}/branding" ]; then
-        custom_logo="$(find "${SHARE_DIR}/branding" -type f | head -n 1 || true)"
-    fi
-    if [ -n "${custom_logo}" ] && [ -f "${custom_logo}" ]; then
-        printf "greeter-logo-path='%s'\n\n[org/gnome/login-screen]\nlogo='%s'\n" \
-            "${custom_logo}" "${custom_logo}" >> /etc/dconf/db/gdm.d/10-sylepsign
-    fi
-    printf "[org/gnome/shell]\nenabled-extensions=%s\n" "${ext_list}" > /etc/dconf/db/local.d/10-sylepsign
-    command -v dconf >/dev/null 2>&1 && dconf update || true
-}
-
-manage_sessions() {
-    local action="${1:-enable}"
-    local action_display="Enabling"
-    [ "${action}" = "disable" ] && action_display="Disabling"
-    echo "${action_display} extension for active desktop sessions..."
-    local uids
-    uids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | sort -u || true)
-    local has_user=false
-    for uid in $uids; do
-        if [ "$uid" -ge 1000 ] 2>/dev/null; then
-            has_user=true
-            local uuser
-            uuser=$(id -nu "$uid" 2>/dev/null || true)
-            if [ -n "$uuser" ] && [ -d "/run/user/${uid}" ]; then
-                sudo -u "$uuser" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-            fi
-        fi
-    done
-
-    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-        local suid
-        suid=$(id -u "${SUDO_USER}" 2>/dev/null || true)
-        if [ -n "${suid}" ] && [ -d "/run/user/${suid}" ]; then
-            sudo -u "${SUDO_USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${suid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-        fi
-    fi
-
-    if [ "${has_user}" = "false" ]; then
-        if systemctl is-active --quiet gdm 2>/dev/null || systemctl is-active --quiet gdm3 2>/dev/null; then
-            systemctl restart gdm 2>/dev/null || systemctl restart gdm3 2>/dev/null || true
-        fi
-    fi
+    command -v systemctl >/dev/null 2>&1 && { systemctl restart sylepsign.service; echo "Service restarted."; } || echo "systemctl not found." >&2
 }
 
 cmd_set_state() {
     local action="$1"
-    local bool_val="$([ "${action}" = "enable" ] && echo "true" || echo "false")"
+    require_root "$@"
     local action_display="Enabling"
     [ "${action}" = "disable" ] && action_display="Disabling"
     echo "${action_display} Sylepsign..."
-
-    if [ "$(id -u)" -ne 0 ]; then
-        command -v gnome-extensions >/dev/null 2>&1 && gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-        if command -v gsettings >/dev/null 2>&1; then
-            gsettings set org.gnome.shell.extensions.sylepsign enabled "${bool_val}" 2>/dev/null || true
-            gsettings set org.gnome.shell.extensions.sylepsign enable-gdm-signage "${bool_val}" 2>/dev/null || true
-        fi
-        echo "Root privileges required to update system-wide services and GDM greeter. Re-running with sudo..."
-        exec sudo bash "$0" "${action}" "$@"
-    fi
-
+    [ "${action}" = "disable" ] && stop_players
     manage_dconf "${action}"
     manage_sessions "${action}"
-
     if command -v systemctl >/dev/null 2>&1; then
         [ "${action}" = "enable" ] && systemctl enable --now sylepsign.service 2>/dev/null || systemctl disable --now sylepsign.service 2>/dev/null || true
     fi
@@ -136,19 +74,16 @@ cmd_set_state() {
 }
 
 cmd_uninstall() {
-    if [ "$(id -u)" -ne 0 ]; then
-        echo "Root privileges required for uninstallation. Re-running with sudo..."
-        exec sudo bash "$0" uninstall "$@"
-    fi
-
+    require_root "$@"
     echo "Uninstalling Sylepsign..."
+    stop_players
     manage_sessions "disable"
-
     if command -v systemctl >/dev/null 2>&1; then
         systemctl disable --now sylepsign.service 2>/dev/null || true
         systemctl stop sylepsign.service 2>/dev/null || true
     fi
-
+    pkill -9 -f "sylepsign-daemon" 2>/dev/null || true
+    pkill -9 -f "daemon/daemon.js" 2>/dev/null || true
     rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf" \
           "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
           /etc/dconf/db/gdm.d/10-sylepsign /etc/dconf/db/local.d/10-sylepsign \
@@ -160,7 +95,58 @@ cmd_uninstall() {
         systemctl reload dbus 2>/dev/null || true
         systemctl daemon-reload 2>/dev/null || true
     fi
+    refresh_gdm
+    stop_players
     echo "Sylepsign has been completely uninstalled."
+}
+
+cmd_update() {
+    echo "Checking GitHub for updates..."
+    local cur_ver
+    cur_ver="$(cmd_version)"
+    local remote_meta
+    remote_meta="$(curl -fsSL https://raw.githubusercontent.com/alecdromano/sylepsign/main/ext/metadata.json 2>/dev/null || true)"
+    if [ -n "${remote_meta}" ]; then
+        local latest_ver
+        latest_ver="$(echo "${remote_meta}" | grep -o '"version-name": *"[^"]*"' | head -n 1 | cut -d'"' -f4 || true)"
+        echo "Installed version: ${cur_ver}"
+        echo "Latest available:  ${latest_ver:-unknown}"
+        if [ -n "${latest_ver}" ] && [ "${latest_ver}" != "${cur_ver}" ]; then
+            echo "An update is available. Run 'sudo sylepsign upgrade' to apply."
+        else
+            echo "Sylepsign is up to date."
+        fi
+    else
+        echo "Could not reach GitHub update server."
+    fi
+}
+
+cmd_upgrade() {
+    require_root "$@"
+    echo "Upgrading Sylepsign..."
+    if [ -n "${SYLEPSIGN_SRC:-}" ] && [ -f "${SYLEPSIGN_SRC}/install.sh" ]; then
+        echo "Updating from specified source: ${SYLEPSIGN_SRC}"
+        bash "${SYLEPSIGN_SRC}/install.sh" --update
+        return 0
+    fi
+    if [ -f "${PWD}/install.sh" ] && [ -d "${PWD}/daemon" ] && [ -d "${PWD}/ext" ]; then
+        echo "Updating from current directory: ${PWD}"
+        [ -d "${PWD}/.git" ] && git pull --ff-only 2>/dev/null || true
+        bash "${PWD}/install.sh" --update
+        return 0
+    fi
+    local tmp_dir
+    tmp_dir="$(mktemp -d -t sylepsign-upgrade-XXXXXX)"
+    echo "Downloading latest Sylepsign release from GitHub..."
+    if git clone --depth 1 https://github.com/alecdromano/sylepsign.git "${tmp_dir}/repo" 2>/dev/null; then
+        bash "${tmp_dir}/repo/install.sh" --update
+        rm -rf "${tmp_dir}"
+        echo "Upgrade completed successfully."
+    else
+        rm -rf "${tmp_dir}"
+        echo "ERROR: Failed to clone repository from GitHub." >&2
+        return 1
+    fi
 }
 
 cmd_logo() {
@@ -170,11 +156,7 @@ cmd_logo() {
 
     if [ "${target}" = "--reset" ] || [ "${target}" = "reset" ]; then
         echo "Restoring stock distribution logo for GDM..."
-        if [ "$(id -u)" -ne 0 ]; then
-            pkexec "${helper}" reset-logo
-        else
-            "${helper}" reset-logo
-        fi
+        [ "$(id -u)" -ne 0 ] && pkexec "${helper}" reset-logo || "${helper}" reset-logo
         command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.shell.extensions.sylepsign greeter-logo-path "" 2>/dev/null || true
         echo "Stock distribution logo restored."
     elif [ -n "${target}" ]; then
@@ -182,11 +164,7 @@ cmd_logo() {
         local abs_target
         abs_target="$(cd "$(dirname "${target}")" && pwd)/$(basename "${target}")"
         local res
-        if [ "$(id -u)" -ne 0 ]; then
-            res=$(pkexec "${helper}" set-logo "${abs_target}")
-        else
-            res=$("${helper}" set-logo "${abs_target}")
-        fi
+        [ "$(id -u)" -ne 0 ] && res=$(pkexec "${helper}" set-logo "${abs_target}") || res=$("${helper}" set-logo "${abs_target}")
         local dest
         dest=$(echo "${res}" | grep "SET_LOGO_OK:" | cut -d':' -f2 || true)
         [ -n "${dest}" ] && command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.shell.extensions.sylepsign greeter-logo-path "${dest}" 2>/dev/null || true
@@ -232,18 +210,13 @@ case "${ACTION}" in
     status) cmd_status ;;
     videos) cmd_videos ;;
     logo) shift; cmd_logo "$@" ;;
-    enable) cmd_set_state "enable" ;;
-    disable) cmd_set_state "disable" ;;
+    enable) cmd_set_state "enable" "$@" ;;
+    disable) cmd_set_state "disable" "$@" ;;
     update|check-update) cmd_update ;;
-    upgrade) cmd_upgrade ;;
+    upgrade) cmd_upgrade "$@" ;;
     uncache|clear-cache) cmd_uncache ;;
-    restart) cmd_restart ;;
-    uninstall|--uninstall) cmd_uninstall ;;
+    restart) cmd_restart "$@" ;;
+    uninstall|--uninstall) cmd_uninstall "$@" ;;
     help|--help|-h) cmd_help ;;
-    *)
-        echo "Unknown command: ${ACTION}" >&2
-        cmd_help
-        exit 1
-        ;;
+    *) echo "Unknown command: ${ACTION}" >&2; cmd_help; exit 1 ;;
 esac
-

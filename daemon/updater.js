@@ -69,35 +69,29 @@ export class UpdateManager {
                     return;
                 } catch (_e) {}
             }
+            this.checkRemoteMetadata(callback);
+        });
+    }
 
-            if (status === 404) {
-                this.fetchUrl(`https://api.github.com/repos/${this.repo}/tags`, (tStatus, tText) => {
-                    if (tStatus === 200 && tText) {
-                        try {
-                            const tags = JSON.parse(tText);
-                            if (Array.isArray(tags) && tags.length > 0) {
-                                const latestTag = (tags[0].name || '').replace(/^v/, '');
-                                callback({
-                                    available: this.compareVersions(this.currentVersion, latestTag) < 0,
-                                    currentVersion: this.currentVersion,
-                                    latestVersion: latestTag || this.currentVersion,
-                                    url: `https://github.com/${this.repo}`,
-                                    notes: '',
-                                });
-                                return;
-                            }
-                        } catch (_e) {}
+    checkRemoteMetadata(callback) {
+        const metaUrl = `https://raw.githubusercontent.com/${this.repo}/${this.branch}/ext/metadata.json`;
+        this.fetchUrl(metaUrl, (status, text) => {
+            if (status === 200 && text) {
+                try {
+                    const data = JSON.parse(text);
+                    const remoteVersion = (data['version-name'] || '').replace(/^v/, '');
+                    if (remoteVersion) {
+                        callback({
+                            available: this.compareVersions(this.currentVersion, remoteVersion) < 0,
+                            currentVersion: this.currentVersion,
+                            latestVersion: remoteVersion,
+                            url: `https://github.com/${this.repo}`,
+                            notes: '',
+                        });
+                        return;
                     }
-                    callback({
-                        available: false,
-                        currentVersion: this.currentVersion,
-                        latestVersion: this.currentVersion,
-                        error: 'No releases found on GitHub',
-                    });
-                });
-                return;
+                } catch (_e) {}
             }
-
             callback({
                 available: false,
                 currentVersion: this.currentVersion,
@@ -108,8 +102,8 @@ export class UpdateManager {
     }
 
     compareVersions(v1, v2) {
-        const p1 = (v1 || '').split('.').map(x => parseInt(x, 10) || 0);
-        const p2 = (v2 || '').split('.').map(x => parseInt(x, 10) || 0);
+        const p1 = (v1 || '').split(/[\s.-]/).map(x => parseInt(x, 10) || 0);
+        const p2 = (v2 || '').split(/[\s.-]/).map(x => parseInt(x, 10) || 0);
         const len = Math.max(p1.length, p2.length);
 
         for (let i = 0; i < len; i++) {
@@ -122,26 +116,28 @@ export class UpdateManager {
     }
 
     applyUpdate(callback) {
-        const updateScript = [
-            'bash',
-            '-c',
-            [
-                'set -e',
-                'TMP="$(mktemp -d)"',
-                'trap "rm -rf \'$TMP\'" EXIT',
-                `URL="https://github.com/${this.repo}/releases/latest/download/sylepsign.tar.gz"`,
-                'if curl -fsSL "$URL" -o "$TMP/sylepsign.tar.gz" 2>/dev/null; then',
-                '  tar -xzf "$TMP/sylepsign.tar.gz" -C "$TMP"',
-                '  cd "$TMP/sylepsign" && ./install.sh --update',
-                'else',
-                `  curl -fsSL "https://raw.githubusercontent.com/${this.repo}/${this.branch}/install.sh" | bash -s -- --update`,
-                'fi',
-            ].join('\n')
-        ];
+        const script = [
+            'set -e',
+            'TMP="$(mktemp -d)"',
+            'trap "rm -rf \'$TMP\'" EXIT',
+            `if git clone --depth 1 https://github.com/${this.repo}.git "$TMP/repo" 2>/dev/null; then`,
+            '    bash "$TMP/repo/install.sh" --update',
+            'else',
+            `    curl -fsSL "https://raw.githubusercontent.com/${this.repo}/${this.branch}/install.sh" | bash -s -- --update`,
+            'fi',
+        ].join('\n');
+
+        let cmd = ['bash', '-c', script];
+        try {
+            const [hasRun] = GLib.spawn_command_line_sync('which systemd-run');
+            if (hasRun) {
+                cmd = ['systemd-run', '--unit=sylepsign-upgrade', '--service-type=oneshot', 'bash', '-c', script];
+            }
+        } catch (_e) {}
 
         try {
             const proc = new Gio.Subprocess({
-                argv: updateScript,
+                argv: cmd,
                 flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE,
             });
             proc.init(null);

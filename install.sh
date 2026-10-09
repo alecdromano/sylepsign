@@ -33,7 +33,7 @@ require_root() {
             echo "Root privileges required. Re-running with sudo..."
             exec sudo bash "${SCRIPT_DIR}/install.sh" "$@"
         else
-            echo "Root privileges required. Please re-run with sudo (e.g. curl ... | sudo bash)." >&2
+            echo "Root privileges required. Please re-run with sudo." >&2
             exit 1
         fi
     fi
@@ -83,7 +83,7 @@ install_dependencies() {
             zypper --non-interactive install --no-recommends gnome-shell-extension-manager 2>/dev/null || true
             ;;
         *)
-            echo "Warning: Unrecognized package manager. Ensure mpv, avahi, gjs, glib2, jq, and gettext are installed." >&2
+            echo "Warning: Unrecognized package manager. Ensure dependencies are installed." >&2
             ;;
     esac
     systemctl enable --now avahi-daemon 2>/dev/null || true
@@ -115,30 +115,25 @@ setup_directories() {
 install_daemon() {
     echo "Installing Sylepsign daemon..."
     cp -r "${SCRIPT_DIR}/daemon/"*.js "${DAEMON_SHARE_DIR}/"
-
     cat << 'EOF' > "${BIN_DIR}/sylepsign-daemon"
 #!/usr/bin/env bash
 exec /usr/bin/gjs -m /usr/local/share/sylepsign/daemon/daemon.js "$@"
 EOF
     chmod +x "${BIN_DIR}/sylepsign-daemon"
-
     cp "${SCRIPT_DIR}/systemd/org.sylepsign.conf" "${DBUS_POLICY_DIR}/org.sylepsign.conf"
     cp "${SCRIPT_DIR}/systemd/sylepsign.service" "${SYSTEMD_DIR}/sylepsign.service"
     systemctl daemon-reload
-    systemctl reload dbus || true
+    systemctl reload dbus 2>/dev/null || true
     systemctl enable sylepsign.service
     systemctl restart sylepsign.service
 }
 
 install_cli() {
-    echo "Installing Sylepsign CLI..."
+    echo "Installing Sylepsign CLI and helpers..."
     cp "${SCRIPT_DIR}/bin/sylepsign" "${BIN_DIR}/sylepsign"
     chmod +x "${BIN_DIR}/sylepsign"
-}
-
-install_helper() {
-    echo "Installing admin helper and Polkit policy..."
-    mkdir -p "${SHARE_DIR}" "${POLKIT_DIR}"
+    cp "${SCRIPT_DIR}/bin/session" "${SHARE_DIR}/session"
+    chmod 0755 "${SHARE_DIR}/session"
     cp "${SCRIPT_DIR}/bin/helper" "${SHARE_DIR}/helper"
     chmod 0755 "${SHARE_DIR}/helper"
     if [ -f "${SCRIPT_DIR}/data/policy" ]; then
@@ -153,74 +148,39 @@ install_extension() {
     rm -rf "${EXT_INSTALL_DIR}"
     mkdir -p "${EXT_INSTALL_DIR}"
     cp -r "${SCRIPT_DIR}/ext/"* "${EXT_INSTALL_DIR}/"
-
     cp "${SCRIPT_DIR}/schemas/org.gnome.shell.extensions.sylepsign.gschema.xml" "${SCHEMA_DIR}/"
     glib-compile-schemas "${SCHEMA_DIR}"
 }
 
-configure_dconf() {
-    echo "Configuring system dconf databases (GDM and desktop sessions)..."
-    mkdir -p /etc/dconf/db/gdm.d /etc/dconf/db/local.d /etc/dconf/profile
-    printf "[org/gnome/shell]\nenabled-extensions=['${UUID}']\n" | tee /etc/dconf/db/gdm.d/10-sylepsign > /etc/dconf/db/local.d/10-sylepsign
-    for prof in gdm Debian-gdm; do
-        local pfile="/etc/dconf/profile/${prof}"
-        [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
-        grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
-    done
-    local uprofile="/etc/dconf/profile/user"
-    [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
-    grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
-    dconf update || true
-}
-
-manage_sessions() {
-    local action="${1:-enable}"
-    local action_display="Enabling"
-    [ "${action}" = "disable" ] && action_display="Disabling"
-    echo "${action_display} extension for active desktop sessions..."
-    local uids
-    uids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | sort -u || true)
-    local has_user=false
-    for uid in $uids; do
-        if [ "$uid" -ge 1000 ] 2>/dev/null; then
-            has_user=true
-            local uuser
-            uuser=$(id -nu "$uid" 2>/dev/null || true)
-            if [ -n "$uuser" ] && [ -d "/run/user/${uid}" ]; then
-                sudo -u "$uuser" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-            fi
-        fi
-    done
-
-    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-        local suid
-        suid=$(id -u "${SUDO_USER}" 2>/dev/null || true)
-        if [ -n "${suid}" ] && [ -d "/run/user/${suid}" ]; then
-            sudo -u "${SUDO_USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${suid}/bus" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-        fi
-    fi
-
-    if [ "${has_user}" = "false" ]; then
-        if systemctl is-active --quiet gdm 2>/dev/null || systemctl is-active --quiet gdm3 2>/dev/null; then
-            systemctl restart gdm 2>/dev/null || systemctl restart gdm3 2>/dev/null || true
-        fi
-    fi
+load_session_helper() {
+    local helper="${SHARE_DIR}/session"
+    [ ! -f "${helper}" ] && helper="${SCRIPT_DIR}/bin/session"
+    # shellcheck source=/dev/null
+    source "${helper}"
 }
 
 uninstall() {
     echo "Uninstalling Sylepsign..."
+    load_session_helper
+    stop_players
     manage_sessions disable
-    systemctl disable --now sylepsign.service 2>/dev/null || true
-    systemctl stop sylepsign.service 2>/dev/null || true
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl disable --now sylepsign.service 2>/dev/null || true
+        systemctl stop sylepsign.service 2>/dev/null || true
+    fi
+    pkill -9 -f "sylepsign-daemon" 2>/dev/null || true
+    pkill -9 -f "daemon/daemon.js" 2>/dev/null || true
     rm -f "${SYSTEMD_DIR}/sylepsign.service" "${DBUS_POLICY_DIR}/org.sylepsign.conf" \
           "${SCHEMA_DIR}/org.gnome.shell.extensions.sylepsign.gschema.xml" \
           /etc/dconf/db/gdm.d/10-sylepsign /etc/dconf/db/local.d/10-sylepsign \
           "${POLKIT_DIR}/org.sylepsign.policy" "${BIN_DIR}/sylepsign-daemon" "${BIN_DIR}/sylepsign"
     rm -rf "${SHARE_DIR}" "${EXT_INSTALL_DIR}" /etc/signage "${POOL_DIR}" "${CACHE_DIR}"
-    dconf update || true
-    glib-compile-schemas "${SCHEMA_DIR}" || true
+    dconf update 2>/dev/null || true
+    glib-compile-schemas "${SCHEMA_DIR}" 2>/dev/null || true
     systemctl reload dbus 2>/dev/null || true
     systemctl daemon-reload
+    refresh_gdm
+    stop_players
     echo "Sylepsign uninstalled."
 }
 
@@ -235,10 +195,10 @@ case "${ACTION}" in
         bootstrap_source
         setup_directories
         install_extension
-        install_helper
         install_cli
         install_daemon
-        configure_dconf
+        load_session_helper
+        manage_dconf enable
         manage_sessions enable
         echo "=== Sylepsign Installation Complete ==="
         echo "CLI available at: /usr/local/bin/sylepsign"

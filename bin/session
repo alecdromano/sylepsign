@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+UUID="sylepsign@alecromano.com"
+GDM_CONF_DIR="/etc/dconf/db/gdm.d"
+LOCAL_CONF_DIR="/etc/dconf/db/local.d"
+PROFILE_DIR="/etc/dconf/profile"
+SHARE_DIR="/usr/local/share/sylepsign"
+
+is_graphical_user_active() {
+    local sids
+    sids=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}' || true)
+    for sid in ${sids}; do
+        local stype sclass sstate
+        stype=$(loginctl show-session "${sid}" -p Type --value 2>/dev/null || true)
+        sclass=$(loginctl show-session "${sid}" -p Class --value 2>/dev/null || true)
+        sstate=$(loginctl show-session "${sid}" -p State --value 2>/dev/null || true)
+        if [ "${sclass}" = "user" ] && [ "${sstate}" = "active" ]; then
+            if [ "${stype}" = "wayland" ] || [ "${stype}" = "x11" ]; then
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+stop_players() {
+    pkill -9 -f "title=fleet-signage" 2>/dev/null || true
+    pkill -9 -f "signage-pool" 2>/dev/null || true
+    pkill -9 -f "signage-videos" 2>/dev/null || true
+}
+
+ensure_dconf_profiles() {
+    mkdir -p "${GDM_CONF_DIR}" "${LOCAL_CONF_DIR}" "${PROFILE_DIR}"
+    for prof in gdm Debian-gdm; do
+        local pfile="${PROFILE_DIR}/${prof}"
+        [ ! -f "${pfile}" ] && printf "user-db:user\nsystem-db:gdm\nfile-db:/var/lib/gdm3/greeter-dconf-defaults\n" > "${pfile}"
+        grep -q "^system-db:gdm" "${pfile}" 2>/dev/null || echo "system-db:gdm" >> "${pfile}"
+    done
+    local uprofile="${PROFILE_DIR}/user"
+    [ ! -f "${uprofile}" ] && printf "user-db:user\nsystem-db:local\n" > "${uprofile}"
+    grep -q "^system-db:local" "${uprofile}" 2>/dev/null || echo "system-db:local" >> "${uprofile}"
+}
+
+manage_dconf() {
+    local state="${1:-enable}"
+    local ext_list="$([ "${state}" = "enable" ] && echo "['${UUID}']" || echo "@as []")"
+    local bool_val="$([ "${state}" = "enable" ] && echo "true" || echo "false")"
+    ensure_dconf_profiles
+    printf "[org/gnome/shell]\nenabled-extensions=%s\n\n[org/gnome/shell/extensions/sylepsign]\nenable-gdm-signage=%s\nenabled=%s\n" \
+        "${ext_list}" "${bool_val}" "${bool_val}" > "${GDM_CONF_DIR}/10-sylepsign"
+    local custom_logo=""
+    if [ -d "${SHARE_DIR}/branding" ]; then
+        custom_logo="$(find "${SHARE_DIR}/branding" -type f | head -n 1 || true)"
+    fi
+    if [ "${state}" = "enable" ] && [ -n "${custom_logo}" ] && [ -f "${custom_logo}" ]; then
+        printf "greeter-logo-path='%s'\n\n[org/gnome/login-screen]\nlogo='%s'\n" \
+            "${custom_logo}" "${custom_logo}" >> "${GDM_CONF_DIR}/10-sylepsign"
+    fi
+    rm -f "${LOCAL_CONF_DIR}/10-sylepsign"
+    command -v dconf >/dev/null 2>&1 && dconf update || true
+}
+
+refresh_gdm() {
+    if is_graphical_user_active; then
+        pkill -f "gnome-shell --mode=gdm" 2>/dev/null || true
+        stop_players
+    elif command -v systemctl >/dev/null 2>&1; then
+        if systemctl is-active --quiet gdm 2>/dev/null; then
+            systemctl restart gdm 2>/dev/null || true
+        elif systemctl is-active --quiet gdm3 2>/dev/null; then
+            systemctl restart gdm3 2>/dev/null || true
+        fi
+    fi
+}
+
+manage_sessions() {
+    local action="${1:-enable}"
+    local bool_val="$([ "${action}" = "enable" ] && echo "true" || echo "false")"
+    local action_display="Enabling"
+    [ "${action}" = "disable" ] && action_display="Disabling"
+    echo "${action_display} extension for active desktop sessions..."
+    local uids
+    uids=$(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}' || true)
+    for uid in ${uids}; do
+        if [ "${uid}" -ge 1000 ] 2>/dev/null; then
+            local uuser
+            uuser=$(id -nu "${uid}" 2>/dev/null || true)
+            local ubus="/run/user/${uid}/bus"
+            if [ -n "${uuser}" ] && [ -S "${ubus}" ]; then
+                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enabled "${bool_val}" 2>/dev/null || true
+                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enable-gdm-signage "${bool_val}" 2>/dev/null || true
+            fi
+        fi
+    done
+    refresh_gdm
+}

@@ -16,7 +16,7 @@ uninstall:
 
 check: locale
 	@echo "Checking shell scripts..."
-	@bash -n bin/sylepsign bin/helper bin/locale bin/translate install.sh
+	@bash -n bin/sylepsign bin/session bin/helper bin/locale bin/translate install.sh
 	@echo "Checking GJS syntax..."
 	@gjs -m daemon/pool.js 2>&1 | grep -v "imports" || true
 	@node -c ext/prefs.js ext/ui/*.js

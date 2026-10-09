@@ -108,7 +108,13 @@ export class Player {
     }
 
     stop() {
-        if (!this.running && this.processes.length === 0) return;
+        if (!this.running && this.processes.length === 0) {
+            try {
+                GLib.spawn_command_line_async('pkill -f "title=fleet-signage"');
+                GLib.spawn_command_line_async('pkill -f "signage-pool"');
+            } catch (e) {}
+            return;
+        }
         this.stopping = true;
         this.running = false;
 
@@ -123,7 +129,10 @@ export class Player {
             for (const p of toKill) {
                 try { p.send_signal(9); } catch (e) {}
             }
-            try { GLib.spawn_command_line_async('pkill -f "title=fleet-signage"'); } catch (e) {}
+            try {
+                GLib.spawn_command_line_async('pkill -f "title=fleet-signage"');
+                GLib.spawn_command_line_async('pkill -f "signage-pool"');
+            } catch (e) {}
             this.stopping = false;
             return GLib.SOURCE_REMOVE;
         });

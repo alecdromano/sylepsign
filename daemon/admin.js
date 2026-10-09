@@ -15,11 +15,17 @@ export class AdminManager {
             GLib.mkdir_with_parents(this.gdmDir, 0o755);
             const confFile = `${this.gdmDir}/10-sylepsign`;
             const content = enabled
-                ? `[org/gnome/shell]\nenabled-extensions=['${this.uuid}']\n`
-                : `[org/gnome/shell]\nenabled-extensions=@as []\n`;
+                ? `[org/gnome/shell]\nenabled-extensions=['${this.uuid}']\n\n[org/gnome/shell/extensions/sylepsign]\nenable-gdm-signage=true\nenabled=true\n`
+                : `[org/gnome/shell]\nenabled-extensions=@as []\n\n[org/gnome/shell/extensions/sylepsign]\nenable-gdm-signage=false\nenabled=false\n`;
 
             GLib.file_set_contents(confFile, content);
             this.ensureDconfProfiles();
+            if (!enabled) {
+                try {
+                    GLib.spawn_command_line_async('pkill -9 -f "title=fleet-signage"');
+                    GLib.spawn_command_line_async('pkill -9 -f "signage-pool"');
+                } catch (_e) {}
+            }
             this.updateDconf(callback);
         } catch (e) {
             callback?.(false, e.message);

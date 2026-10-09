@@ -94,9 +94,8 @@ export default class SylepsignExtension extends Extension {
             }
         } else {
             this.fader?.disable();
-            const enableMaster = this.settings?.get_boolean('enable-gdm-signage') ?? true;
             const enableLock = this.settings?.get_boolean('enable-user-lockscreen') ?? true;
-            if (enableMaster && enableLock) {
+            if (isMaster && enableLock) {
                 this.monitor?.enable();
             } else {
                 this.monitor?.disable();
