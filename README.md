@@ -4,15 +4,11 @@ A hardware-accelerated video signage subsystem, idle monitor, and peer-to-peer a
 
 ![Sylepsign Example Use Case](docs/cover.webp)
 
----
-
 ## Overview
 
 Sylepsign transforms Linux workstations, digital kiosks, and GNOME desktop fleets into dynamic video signage displays whenever machines sit idle or remain at the GDM (GNOME Display Manager) login screen.
 
 Operating natively within GNOME Shell under Wayland, Sylepsign displays hardware-accelerated video beneath the GDM greeter and lock screen. System authentication boundaries remain completely secure while delivering smooth, cinematic visual backdrops across single or multi-monitor setups.
-
----
 
 ## Features
 
@@ -25,8 +21,6 @@ Operating natively within GNOME Shell under Wayland, Sylepsign displays hardware
 * **CLI Management Tool**: Inspect service health, manage video assets, set custom greeter logos, and trigger updates from the terminal.
 
 ![Sylepsign Preview](docs/greeter.webp)
-
----
 
 ## Installation
 
@@ -54,8 +48,6 @@ cd sylepsign
 sudo ./install.sh
 ```
 
----
-
 ## Adding Videos
 
 Videos are indexed from the system signage pool at `/var/lib/signage-pool/`.
@@ -71,8 +63,6 @@ Sylepsign indexes new videos automatically. You can view all indexed local and c
 ```bash
 sylepsign videos
 ```
-
----
 
 ## Settings & Configuration
 
@@ -114,8 +104,6 @@ Toggle user session lock screen replacement and set idle timeout thresholds for 
 
 ![Lock Screen Settings](docs/lockscreen.webp)
 
----
-
 ## Command-Line Interface
 
 The `sylepsign` CLI tool provides convenient system and asset management:
@@ -133,8 +121,6 @@ sylepsign update          # Check for software updates
 sylepsign upgrade         # Download and install the latest release
 sylepsign uninstall       # Completely remove Sylepsign from the system
 ```
-
----
 
 ## Upgrades & Removal
 
