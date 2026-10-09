@@ -153,7 +153,7 @@ sudo ./install.sh --update
 
 ### Uninstallation
 
-To completely remove Sylepsign, background services, media pools, and configuration profiles:
+To completely remove Sylepsign, stop active playback processes, unload GNOME Shell extensions, and clean system dconf profiles and media pools:
 
 ```bash
 sylepsign uninstall
