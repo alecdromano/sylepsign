@@ -163,7 +163,7 @@ uninstall() {
     echo "Uninstalling Sylepsign..."
     load_session_helper
     stop_players
-    manage_sessions disable
+    manage_sessions uninstall
     if command -v systemctl >/dev/null 2>&1; then
         systemctl disable --now sylepsign.service 2>/dev/null || true
         systemctl stop sylepsign.service 2>/dev/null || true

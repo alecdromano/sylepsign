@@ -79,6 +79,7 @@ manage_sessions() {
     local bool_val="$([ "${action}" = "enable" ] && echo "true" || echo "false")"
     local action_display="Enabling"
     [ "${action}" = "disable" ] && action_display="Disabling"
+    [ "${action}" = "uninstall" ] && action_display="Uninstalling"
     echo "${action_display} extension for active desktop sessions..."
     local uids
     uids=$(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}' || true)
@@ -88,9 +89,14 @@ manage_sessions() {
             uuser=$(id -nu "${uid}" 2>/dev/null || true)
             local ubus="/run/user/${uid}/bus"
             if [ -n "${uuser}" ] && [ -S "${ubus}" ]; then
-                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
-                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enabled "${bool_val}" 2>/dev/null || true
-                sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enable-gdm-signage "${bool_val}" 2>/dev/null || true
+                if [ "${action}" = "uninstall" ]; then
+                    sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gnome-extensions disable "${UUID}" 2>/dev/null || true
+                    sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gnome-extensions uninstall "${UUID}" 2>/dev/null || true
+                else
+                    sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gnome-extensions "${action}" "${UUID}" 2>/dev/null || true
+                    sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enabled "${bool_val}" 2>/dev/null || true
+                    sudo -u "${uuser}" env XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="unix:path=${ubus}" gsettings set org.gnome.shell.extensions.sylepsign enable-gdm-signage "${bool_val}" 2>/dev/null || true
+                fi
             fi
         fi
     done
